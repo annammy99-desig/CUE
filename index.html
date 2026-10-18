@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>진주교대 면접 연습 - 학생부 맞춤 AI 코치</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Jua & Noto Sans KR for cute feel) -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                        cute: ['Jua', 'sans-serif'],
+                    },
+                    colors: {
+                        cute: {
+                            50: '#fff5f7',
+                            100: '#ffe3e8',
+                            300: '#ffb6c1',
+                            500: '#ff8da1',
+                            600: '#ff6b85',
+                            700: '#e0536d',
+                            900: '#b53b52',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .cute-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #ffe3e8;
+            box-shadow: 0 8px 20px -4px rgba(255, 182, 193, 0.2);
+            border-radius: 1.5rem;
+        }
+        .pulse-recording {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 107, 133, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(255, 107, 133, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 107, 133, 0); }
+        }
+        .wave-bar {
+            transition: height 0.15s ease-in-out;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fff5f7;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ffb6c1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff8da1;
+        }
+    </style>
+</head>
+<body class="bg-[#fff9fa] text-slate-700 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b-2 border-cute-100 sticky top-0 z-30 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cute-600 to-cute-400 flex items-center justify-center text-white shadow-md transform rotate-[-3deg]">
+                    <i class="fa-solid fa-seedling text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-cute text-xl sm:text-2xl text-cute-900 tracking-wide">진주교대 면접 연습 🐣</h1>
+                    <p class="text-xs text-cute-700/80 font-medium hidden sm:block">예비교사를 위한 3단계 꼬리질문 & 학생부 맞춤 AI 멘토</p>
+                </div>
+            </div>
+
+            <!-- Header Controls -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button id="manageQuestionsModalBtn" class="px-3.5 py-2 text-xs font-bold text-cute-700 bg-cute-50 hover:bg-cute-100 rounded-xl transition-all flex items-center gap-1.5 border border-cute-200 shadow-2xs">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>질문 관리</span>
+                </button>
+                <button id="openApiKeyBtn" class="px-3.5 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs">
+                    <i class="fa-solid fa-key text-amber-500"></i>
+                    <span class="hidden sm:inline">API 키 설정</span>
+                </button>
+                <button id="historyModalBtn" class="px-3.5 py-2 text-xs font-bold text-white bg-cute-600 hover:bg-cute-700 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span class="hidden sm:inline">연습 기록</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Sidebar / Question Navigation -->
+        <aside class="lg:col-span-4 xl:col-span-3 flex flex-col space-y-4">
+            <div class="cute-card p-4 flex flex-col h-[calc(100vh-130px)] sticky top-20">
+                <!-- Quick Add Question & Controls -->
+                <div class="space-y-3 pb-3 border-b border-cute-100">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-cute-900 uppercase tracking-wider">질문 리스트 (<span id="totalQuestionCount">40</span>)</span>
+                        <button id="randomQuestionBtn" class="text-xs text-cute-600 hover:text-cute-800 font-bold flex items-center gap-1 bg-cute-50 px-2.5 py-1 rounded-lg border border-cute-200">
+                            <i class="fa-solid fa-shuffle"></i> 랜덤 선택
+                        </button>
+                    </div>
+
+                    <!-- Quick Add Question Form (Category select removed) -->
+                    <div class="bg-cute-50/70 p-3 rounded-2xl border border-cute-200 space-y-2">
+                        <span class="text-[11px] font-bold text-cute-900 flex items-center gap-1">
+                            <i class="fa-solid fa-pen-nib text-cute-600"></i> 나만의 질문 바로 추가하기
+                        </span>
+                        <textarea id="sidebarNewQText" rows="2" placeholder="연습하고 싶은 면접 질문을 입력하세요..." class="w-full text-xs p-2.5 bg-white border border-cute-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cute-400 resize-none leading-snug"></textarea>
+                        <button id="sidebarAddQBtn" class="w-full py-2 bg-cute-600 hover:bg-cute-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm">
+                            <i class="fa-solid fa-plus"></i> 질문 리스트에 추가
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Questions List Scrollable -->
+                <div id="questionList" class="flex-1 overflow-y-auto my-2 space-y-2.5 pr-1">
+                    <!-- Dynamic Question Items Inserted Here -->
+                </div>
+
+                <!-- Progress Footer -->
+                <div class="pt-3 border-t border-cute-100 text-xs text-slate-600 flex justify-between items-center font-medium">
+                    <span>연습 완료: <strong id="completedCount" class="text-cute-600">0</strong> / <span id="totalQuestionsStatic">40</span></span>
+                    <div class="w-24 bg-cute-100 h-2.5 rounded-full overflow-hidden p-0.5">
+                        <div id="progressBar" class="bg-cute-500 h-full w-0 rounded-full transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Interview Practice Work Area -->
+        <section class="lg:col-span-8 xl:col-span-9 flex flex-col space-y-6">
+
+            <!-- Step Progress Indicator Bar -->
+            <div class="cute-card p-4 flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center space-x-2 text-xs font-bold overflow-x-auto py-1">
+                    <span class="text-slate-400 shrink-0">진행 단계:</span>
+                    <div class="flex items-center space-x-1.5 shrink-0">
+                        <span id="stepTab1" class="px-3.5 py-1.5 rounded-xl bg-cute-600 text-white shadow-xs">1단계: 본질문</span>
+                        <i class="fa-solid fa-chevron-right text-cute-300 text-[10px]"></i>
+                        <span id="stepTab2" class="px-3.5 py-1.5 rounded-xl bg-cute-50 text-slate-400 border border-cute-100">2단계: 1차 꼬리질문</span>
+                        <i class="fa-solid fa-chevron-right text-cute-300 text-[10px]"></i>
+                        <span id="stepTab3" class="px-3.5 py-1.5 rounded-xl bg-cute-50 text-slate-400 border border-cute-100">3단계: 2차 꼬리질문</span>
+                        <i class="fa-solid fa-chevron-right text-cute-300 text-[10px]"></i>
+                        <span id="stepTab4" class="px-3.5 py-1.5 rounded-xl bg-cute-50 text-slate-400 border border-cute-100">4단계: 종합 평가</span>
+                    </div>
+                </div>
+                <button id="resetSessionBtn" class="text-xs text-cute-700 hover:text-cute-900 bg-cute-50 hover:bg-cute-100 px-3 py-1.5 rounded-xl border border-cute-200 flex items-center gap-1 font-bold shrink-0 transition-all">
+                    <i class="fa-solid fa-rotate-right"></i> 처음부터 다시
+                </button>
+            </div>
+
+            <!-- Question Display Card -->
+            <div class="cute-card p-6 sm:p-8 relative overflow-hidden">
+                <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <div class="flex items-center space-x-2">
+                        <span id="currentCategoryBadge" class="inline-block px-3 py-1 text-xs font-bold rounded-xl bg-cute-100 text-cute-800 border border-cute-200">
+                            카테고리
+                        </span>
+                        <span id="completedBadge" class="inline-block"></span>
+                    </div>
+                    <span id="currentQuestionNum" class="text-xs font-bold text-cute-500 bg-cute-50 px-2.5 py-1 rounded-lg">Q01 / 40</span>
+                </div>
+
+                <h2 id="currentQuestionText" class="text-xl sm:text-2xl font-bold text-slate-800 leading-snug mb-4">
+                    질문을 선택하거나 다음 버튼을 눌러주세요.
+                </h2>
+
+                <!-- Answer Direction Accordion -->
+                <div class="mt-4 border-2 border-cute-100 bg-cute-50/60 rounded-2xl overflow-hidden">
+                    <button id="toggleAnswerGuideBtn" class="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-cute-900 hover:bg-cute-100/50 transition-colors">
+                        <span class="flex items-center gap-2">
+                            <i class="fa-solid fa-lightbulb text-amber-400 text-sm"></i>
+                            출제 의도 및 모범 답안 방향 가이드 보기
+                        </span>
+                        <i id="guideChevron" class="fa-solid fa-chevron-down transition-transform"></i>
+                    </button>
+                    <div id="answerGuideContent" class="hidden px-4 py-3.5 bg-white border-t border-cute-100 text-sm text-slate-600 leading-relaxed">
+                        <p id="currentGuideText" class="whitespace-pre-line">답안 방향 정보가 여기에 표시됩니다.</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Controls -->
+                <div class="mt-6 flex items-center justify-between pt-4 border-t border-cute-100">
+                    <button id="prevQuestionBtn" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors flex items-center gap-1.5 border border-slate-200">
+                        <i class="fa-solid fa-arrow-left"></i> 이전 질문
+                    </button>
+                    <button id="nextQuestionBtn" class="px-5 py-2 text-xs font-bold text-white bg-cute-600 hover:bg-cute-700 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+                        다음 질문 <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recording & Answer Section -->
+            <div class="cute-card p-6 sm:p-8 flex flex-col space-y-6">
+                <div class="flex items-center justify-between border-b border-cute-100 pb-3">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-microphone text-cute-600"></i>
+                        <span id="recordingBoxTitle">1단계 본질문 답변 녹음하기</span>
+                    </h3>
+                    <span id="recordingTimer" class="font-mono text-sm text-cute-700 font-bold bg-cute-50 px-3 py-1 rounded-lg border border-cute-200">00:00 / 02:00</span>
+                </div>
+
+                <!-- Visual Waveform & Status Indicator -->
+                <div class="bg-[#2d2532] rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden min-h-[160px] shadow-inner">
+                    <div id="recordingStatusText" class="text-cute-200 text-xs mb-4 text-center">마이크 버튼을 눌러 답변을 시작하세요. (최대 2분)</div>
+
+                    <!-- Visual Wave Bars -->
+                    <div id="waveContainer" class="flex items-center justify-center gap-1.5 h-12 my-2">
+                        <div class="wave-bar w-1.5 bg-cute-400 rounded-full h-2"></div>
+                        <div class="wave-bar w-1.5 bg-cute-300 rounded-full h-3"></div>
+                        <div class="wave-bar w-1.5 bg-cute-500 rounded-full h-2"></div>
+                        <div class="wave-bar w-1.5 bg-cute-300 rounded-full h-4"></div>
+                        <div class="wave-bar w-1.5 bg-cute-400 rounded-full h-2"></div>
+                        <div class="wave-bar w-1.5 bg-cute-300 rounded-full h-3"></div>
+                        <div class="wave-bar w-1.5 bg-cute-500 rounded-full h-2"></div>
+                    </div>
+
+                    <!-- Audio Control Buttons -->
+                    <div class="flex items-center space-x-4 mt-4">
+                        <button id="recordBtn" class="w-14 h-14 rounded-full bg-cute-600 hover:bg-cute-700 text-white flex items-center justify-center text-xl shadow-lg transition-transform active:scale-95 border-2 border-white/20">
+                            <i id="recordIcon" class="fa-solid fa-microphone"></i>
+                        </button>
+                        <button id="playAudioBtn" class="w-10 h-10 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center text-sm disabled:opacity-40 transition-colors" disabled title="들어보기">
+                            <i id="playIcon" class="fa-solid fa-play"></i>
+                        </button>
+                        <button id="resetAudioBtn" class="w-10 h-10 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 flex items-center justify-center text-sm disabled:opacity-40 transition-colors" disabled title="초기화">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+
+                    <audio id="audioPlayback" class="hidden"></audio>
+                </div>
+
+                <!-- STT Transcript Box (Editable) -->
+                <div>
+                    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                        <label for="transcriptArea" class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-quote-left text-cute-500"></i> 음성 변환 텍스트 (STT) 및 직접 수정
+                        </label>
+                        <button id="sttConvertBtn" class="px-3 py-1.5 text-[11px] font-bold text-cute-700 bg-cute-50 hover:bg-cute-100 border border-cute-200 rounded-xl transition-all flex items-center gap-1">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> AI 음성 텍스트 변환 (STT)
+                        </button>
+                    </div>
+                    <textarea id="transcriptArea" rows="4" placeholder="녹음 중 말하는 내용이 텍스트로 채워집니다. 완료 후 [답변 평가 및 꼬리질문 받기]를 누르세요."
+                        class="w-full text-sm p-4 bg-cute-50/50 border-2 border-cute-100 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-cute-400 transition-all text-slate-800 leading-relaxed"></textarea>
+                </div>
+
+                <!-- Submit Answer Button -->
+                <div class="flex justify-end">
+                    <button id="analyzeBtn" class="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-cute-600 to-cute-500 hover:from-cute-700 hover:to-cute-600 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="analyzeBtnText">1단계 답변 평가 및 1차 꼬리질문 받기</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Feedback Result Box (Multi-tab preserved feedback) -->
+            <div id="feedbackSection" class="hidden cute-card p-6 sm:p-8 space-y-6">
+                <div class="flex items-center justify-between border-b border-cute-100 pb-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-2xl bg-cute-100 text-cute-600 flex items-center justify-center">
+                            <i class="fa-solid fa-award text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 id="feedbackReportTitle" class="font-bold text-slate-800">제미나이 AI 단계별 & 종합 피드백 리포트</h3>
+                            <p class="text-xs text-cute-500 font-medium" id="feedbackDate">종합 심사 결과</p>
+                        </div>
+                    </div>
+                    <button id="saveResultBtn" class="px-3 py-1.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold rounded-xl flex items-center gap-1">
+                        <i class="fa-solid fa-floppy-disk"></i> 저장됨
+                    </button>
+                </div>
+
+                <!-- Feedback Stage Selector Tabs -->
+                <div class="bg-cute-50 p-2 rounded-2xl flex items-center gap-1.5 overflow-x-auto border border-cute-100">
+                    <button id="fbTab1Btn" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap">1단계 피드백</button>
+                    <button id="fbTab2Btn" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap">2단계 피드백</button>
+                    <button id="fbTab3Btn" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap">3단계 피드백</button>
+                    <button id="fbTab4Btn" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap">🏆 4단계 종합 리포트</button>
+                </div>
+
+                <!-- Context Box: Display Question asked & Student Answer for the selected step -->
+                <div id="fbContextCard" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span id="fbContextQTitle" class="font-bold text-cute-700">[1단계 본질문]</span>
+                        <span class="text-[11px] text-slate-400">선택된 피드백 질문 및 답변 정보</span>
+                    </div>
+                    <div id="fbContextQText" class="font-semibold text-slate-800 leading-snug">질문 내용이 표시됩니다.</div>
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 text-slate-700 mt-2">
+                        <span class="font-bold text-slate-400 block mb-1">💬 나의 답변 기록:</span>
+                        <p id="fbContextAText" class="whitespace-pre-line leading-relaxed italic">답변 기록이 표시됩니다.</p>
+                    </div>
+                </div>
+
+                <!-- Scores Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-cute-50/80 border border-cute-200 rounded-2xl p-4 flex items-center justify-between">
+                        <div>
+                            <span id="scoreIntentLabel" class="text-xs font-bold text-cute-700">질문 요구사항 완결성</span>
+                            <div class="text-2xl font-black text-cute-900 mt-1"><span id="scoreIntent">0</span> <span class="text-xs font-normal text-slate-500">/ 100</span></div>
+                        </div>
+                        <i class="fa-solid fa-bullseye text-3xl text-cute-300"></i>
+                    </div>
+                    <div class="bg-purple-50/80 border border-purple-200 rounded-2xl p-4 flex items-center justify-between">
+                        <div>
+                            <span id="scoreLogicLabel" class="text-xs font-bold text-purple-700">교직 적성 및 논리성</span>
+                            <div class="text-2xl font-black text-purple-900 mt-1"><span id="scoreLogic">0</span> <span class="text-xs font-normal text-slate-500">/ 100</span></div>
+                        </div>
+                        <i class="fa-solid fa-brain text-3xl text-purple-200"></i>
+                    </div>
+                </div>
+
+                <!-- Detailed Analysis Content -->
+                <div class="space-y-4">
+                    <!-- Good Points -->
+                    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                        <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i> 답변의 우수한 점
+                        </h4>
+                        <p id="feedbackStrengths" class="text-sm text-emerald-950 leading-relaxed whitespace-pre-line"></p>
+                    </div>
+
+                    <!-- Improvements -->
+                    <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                        <h4 class="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> 질문 요구사항 누락 및 논리 보완점
+                        </h4>
+                        <p id="feedbackImprovements" class="text-sm text-amber-950 leading-relaxed whitespace-pre-line"></p>
+                    </div>
+
+                    <!-- Refined Best Answer (High-School 3rd Grader Tone) -->
+                    <div class="p-4 bg-[#2d2532] text-slate-100 rounded-2xl">
+                        <h4 class="text-xs font-bold text-cute-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-star text-amber-400"></i> 고3 학생 맞춤 구어체 추천 모범 답안
+                        </h4>
+                        <p id="feedbackModelAnswer" class="text-sm text-slate-200 leading-relaxed whitespace-pre-line font-serif"></p>
+                    </div>
+
+                    <!-- Generated Followup Question Preview Card -->
+                    <div id="fbNextFollowupCard" class="p-4 bg-cute-50 border border-cute-200 rounded-2xl hidden">
+                        <h4 class="text-xs font-bold text-cute-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-comments text-cute-600"></i> 생성된 다음 꼬리질문
+                        </h4>
+                        <p id="fbNextFollowupText" class="text-sm font-semibold text-cute-950"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Spinner Indicator Overlay -->
+            <div id="loadingOverlay" class="hidden cute-card p-8 flex flex-col items-center justify-center text-center space-y-3 z-40 fixed inset-x-4 top-1/3 max-w-md mx-auto shadow-2xl">
+                <div class="w-10 h-10 border-4 border-cute-600 border-t-transparent rounded-full animate-spin"></div>
+                <h4 id="loadingTitle" class="font-bold text-slate-800 text-base">제미나이 AI 면접관이 심사 중입니다...</h4>
+                <p id="loadingSubtitle" class="text-xs text-slate-500">질문 충족 여부와 논리적 타당성을 엄격히 다듬고 있습니다.</p>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Modal: Question Management (Add / Delete / Reset) -->
+    <div id="questionManageModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-3xl p-6 max-w-2xl w-full mx-4 shadow-xl border border-cute-100 flex flex-col max-h-[85vh] space-y-4">
+            <div class="flex justify-between items-center border-b border-cute-100 pb-3">
+                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-cute-600"></i> 면접 질문 추가 및 삭제 관리
+                </h3>
+                <button id="closeQuestionManageBtn" class="text-slate-400 hover:text-slate-600 text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Form: Add Question (Category select removed) -->
+            <div class="bg-cute-50 p-4 rounded-2xl border border-cute-200 space-y-3">
+                <h4 class="text-xs font-bold text-cute-900 flex items-center gap-1">
+                    <i class="fa-solid fa-plus-circle text-cute-600"></i> 새 면접 질문 등록
+                </h4>
+                <input type="text" id="newQText" placeholder="면접 질문 내용을 입력하세요..." class="w-full text-xs p-3 bg-white border border-cute-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cute-400">
+                <textarea id="newQGuide" rows="2" placeholder="출제의도 및 답안 방향 가이드 (선택사항)" class="w-full text-xs p-3 bg-white border border-cute-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cute-400"></textarea>
+                <div class="flex justify-end">
+                    <button id="addNewQuestionBtn" class="px-4 py-2 bg-cute-600 hover:bg-cute-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> 질문 등록하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- List: Manage/Delete Questions -->
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1 border-t border-cute-100 pt-3">
+                <div class="flex justify-between items-center text-xs text-slate-500 mb-2">
+                    <span>현재 등록된 질문 목록</span>
+                    <button id="resetQuestionsBtn" class="text-red-500 hover:text-red-700 font-bold text-[11px] flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i> 기본 40문항으로 초기화
+                    </button>
+                </div>
+                <div id="manageQuestionListContainer" class="space-y-2">
+                    <!-- Dynamic Manage List Items -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: API Key Setup -->
+    <div id="apiKeyModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full mx-4 shadow-xl border border-cute-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-cute-100 pb-3">
+                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-key text-amber-500"></i> Gemini API 키 설정
+                </h3>
+                <button id="closeApiKeyBtn" class="text-slate-400 hover:text-slate-600 text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                기본 API 키가 내장되어 있어 별도의 입력 없이 즉시 사용이 가능합니다.
+            </p>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="AQ.Ab8RN..." class="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cute-400">
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button id="saveApiKeyBtn" class="px-4 py-2 text-xs font-bold bg-cute-600 text-white rounded-xl hover:bg-cute-700 transition-colors">
+                    저장하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Practice History -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-3xl p-6 max-w-2xl w-full mx-4 shadow-xl border border-cute-100 flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center border-b border-cute-100 pb-3 mb-4">
+                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-cute-600"></i> 면접 연습 기록
+                </h3>
+                <button id="closeHistoryBtn" class="text-slate-400 hover:text-slate-600 text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="historyListContainer" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                <p class="text-xs text-slate-400 text-center py-8">아직 연습 기록이 없습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Box -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-2xl shadow-xl z-50 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2">
+        <i id="toastIcon" class="fa-solid fa-circle-info text-cute-300"></i>
+        <span id="toastMessage">메시지 내용</span>
+    </div>
+
+    <script>
+        /* Default 40 Custom Interview Questions */
+        const DEFAULT_QUESTION_BANK = [
+            {
+                id: 1,
+                category: "창의적 체험활동",
+                question: "교실의 냉방기·전등 낭비와 분리배출 문제를 개선하는 방안을 제안했다고 되어 있는데, 그 방안이 실제 학급에서 어떻게 시행되었고 그 경험을 통해 일회성 캠페인으로 끝나지 않는 초등 환경교육은 어떻게 설계해야 한다고 생각하게 되었는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 학급 내 실제 시행 과정(에너지 지킴이 역할 분담, 시각적 분리배출 가이드 부착 등 구체적 실천 사례)\n2) 지속 가능한 초등 환경교육 설계: 일회성 구호나 캠페인을 넘어 학급 자치 규칙화, 일상 루틴 결합, 실천 결과를 눈으로 확인하는 피드백 중심의 생태전환교육 강조."
+            },
+            {
+                id: 2,
+                category: "창의적 체험활동",
+                question: "성폭력 예방교육에서 아동 대상 범죄의 특성을 추가로 조사했다고 했는데, 어떤 자료를 통해 무엇을 알게 되었는지, 그리고 딥페이크 같은 디지털 성범죄가 늘어나는 지금 초등학생의 경계 교육은 어디까지 확장되어야 한다고 보는지 설명해 주십시오.",
+                guide: "[답안 포인트]\n1) 조사 자료 및 내용: 아동 대상 범죄가 친밀한 관계나 온라인 그루밍 등을 통해 경계를 허물며 발생한다는 특성 파악\n2) 경계 교육의 확장: 물리적 신체 접촉뿐만 아니라 온라인상의 초상권, 개인정보, 디지털 이미지 및 대화의 동의 여부까지 포함하는 '디지털 경계 존중 교육'으로 확장 필요."
+            },
+            {
+                id: 3,
+                category: "창의적 체험활동",
+                question: "또래 공부방에서 선생님의 도움을 받아 부족한 수학 개념을 보완했다고 되어 있는데, 어떤 개념을 어떤 방식으로 익혔는지, 그리고 그렇게 배우는 입장이 되어 본 경험이 기초학력 보장을 바라보는 지원자의 관점에 어떤 영향을 주었는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 보완한 수학 개념과 학습 방식(오개념 원인 찾기, 단계별 문항 풀이 및 설명하기 등)\n2) 기초학력 보장에 대한 관점: 모르는 것의 두려움과 막막함에 공감하며, 단순 문제 풀이 반복이 아니라 어디서부터 막혔는지 진단하고 정서적 지지와 작은 성공 경험을 주는 맞춤형 지도가 핵심임을 깨달음."
+            },
+            {
+                id: 4,
+                category: "창의적 체험활동",
+                question: "동아리 부장으로서 자료 조사를 통해 핵심 활동을 제안하고 부원들의 참여를 이끌었다고 되어 있는데, 구체적으로 어떤 활동을 제안했고 리더로서 가장 어려웠던 순간을 어떻게 넘겼으며, 그 경험이 지원자가 그리는 담임교사의 학급 운영 방식에 어떻게 이어지는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 제안한 핵심 활동과 리더로서 겪은 어려움(부원 간 참여도 차이 및 의견 조율 과정)\n2) 극복 방법 및 학급 운영 연결: 일방적 지시 대신 부원의 흥미와 강점에 맞춘 역할 부여로 해결했으며, 교사가 되어서도 소외되는 아이 없이 각자의 역할로 학급 공동체에 기여하는 민주적 학급을 운영하겠다는 다짐."
+            },
+            {
+                id: 5,
+                category: "창의적 체험활동",
+                question: "대학 구조조정 토론에서 일괄적인 지방대 폐지에 반대하는 입장을 펼쳤는데, 어떤 자료를 근거로 삼았고 상대측의 가장 강력한 논거는 무엇이었는지, 그리고 학령인구 감소로 학교 통폐합 논의가 이어지는 지금 지역인재로 진주교대에 지원한 입장에서 이 문제를 어떻게 바라보는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 토론 근거(지방대의 지역 균형 발전 및 공공적 가치)와 상대측 논거(재정 효율성 및 학령인구 급감)\n2) 학교 통폐합 및 진주교대 지역인재 관점: 작은 학교는 단순한 교육 시설을 넘어 지역 공동체의 구심점이므로 경제 논리만으로 통폐합해서는 안 되며, 경남 지역의 특성을 살린 특색 교육과정과 거점 학교 연계 모델 등을 이끌 지역 밀착형 교사가 되겠다는 포부."
+            },
+            {
+                id: 6,
+                category: "창의적 체험활동",
+                question: "2학년 때 진행한 화산 폭발 멘토링 수업을 1년 뒤 '아기 공룡 이야기'로 재설계했는데, 처음 수업에서 아이들의 어떤 반응을 보고 부족함을 느꼈는지, 재설계안을 실제로 적용해 보았는지, 그리고 이 과정에서 깨달은 '아이 눈높이에 맞춘 수업'이 무엇인지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 첫 수업의 성찰: 실험 현상(거품 반응)의 신기함에만 집중하고 과학적 원리 용어에는 흥미를 잃던 아이들의 반응\n2) 재설계 과정 및 깨달음: '아기 공룡 이야기'라는 스토리텔링을 결합해 재구성한 과정 설명. 눈높이 수업이란 지식을 단순히 요약하는 것이 아니라 아이들의 상상력과 삶의 맥락 속에 배울 내용을 녹여내는 교수학적 변환임을 깨달음."
+            },
+            {
+                id: 7,
+                category: "창의적 체험활동",
+                question: "진로활동에서 놀이 치료를 탐구하며 교사가 '정서적 조력자'가 되어야 한다는 점을 깨달았다고 했는데, 어떤 자료를 통해 어떤 놀이 치료 기법을 알게 되었는지, 그리고 정서·행동 위기 학생이 늘고 있는 지금 전문 상담가가 아닌 담임교사가 할 수 있는 역할과 넘지 말아야 할 선은 무엇이라고 보는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 탐구한 자료와 놀이 치료 기법(감정 카드, 모래놀이, 투사적 그리기 등 비언어적 감정 표출 기법)\n2) 담임교사의 역할과 한계선: 일상 속 행동 변화를 가장 먼저 관찰해 초기 징후를 발견하고 교실 내 정서적 안전기지를 만드는 것이 역할이며, 단독으로 임상적 진단이나 심층 치료를 시도하기보다 전문 상담교사(Wee클래스)·보호자·외부 전문기관과 협력 연계하는 것이 지켜야 할 선임."
+            },
+            {
+                id: 8,
+                category: "창의적 체험활동",
+                question: "초등학생의 숏폼 미디어 중독과 문해력 저하를 탐구했는데, 실태를 파악할 때 어떤 자료를 근거로 삼았는지, 그리고 그 탐구 결과에 비추어 볼 때 최근 법제화된 수업 중 스마트기기 사용 제한 정책을 어떻게 평가하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 탐구 근거 자료(청소년 미디어 이용 실태조사 통계, 도파민 보상 회로 및 긴 글 독해력 저하 관련 연구 등)\n2) 수업 중 스마트기기 제한 정책 평가: 초등 시기는 전두엽 발달과 자기조절력이 형성되는 단계이므로 최소한의 물리적 제한 기준을 마련한 것은 학습권 보호에 긍정적이나, 단순 통제에 그치지 않고 스스로 미디어 사용 시간을 조절하는 디지털 리터러시 교육과 독서·토론 수업이 병행되어야 함."
+            },
+            {
+                id: 9,
+                category: "창의적 체험활동",
+                question: "Q-보드 활동에서 피드백을 받아 실제 사례를 추가 조사하고 해결책을 보완했다고 되어 있는데, 어떤 피드백을 받아 무엇을 보완했는지, 그리고 경쟁과 서열을 완화하려는 최근의 평가 제도 변화가 초등 교육에는 어떤 시사점을 준다고 생각하는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) Q-보드 활동 당시 받은 피드백 내용(해결책의 현실성·구체성 보완 요구 등)과 추가 사례 조사 과정\n2) 평가 제도 변화와 초등 교육 시사점: 결과 중심 서열화에서 벗어나 동료·교사의 피드백을 통해 어제의 나보다 성장하는 '과정 중심 평가'와 '성장 참조 평가'가 초등 교실에 깊이 정착되어야 함."
+            },
+            {
+                id: 10,
+                category: "교과 세특",
+                question: "화법과 작문 시간에 크로체, 콜링우드, 톨스토이의 표현 이론을 초등 학습자의 동심 보존과 연결했는데, 그중 한 사람의 이론을 지원자의 말로 설명해 주시고, AI가 몇 초 만에 그림을 그려 주는 시대에 아이들이 서툴게라도 직접 표현하는 경험이 왜 여전히 중요한지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 예술 표현 이론 설명(예: 콜링우드의 내면 감정의 명료화 과정, 혹은 톨스토이의 감정 전달과 공감 이론 등)\n2) 직접 표현의 교육적 가치: 결과물의 완성도보다 아이가 자신의 내면 감정과 생각을 더듬어 직접 글과 그림으로 빚어내는 과정 자체가 자기 이해와 정서 발달, 동심 보존의 핵심이기 때문."
+            },
+            {
+                id: 11,
+                category: "교과 세특",
+                question: "확률과 통계 탐구에서 감점 제도의 원리를 분석했는데, 5지선다 시험에서 오답 하나에 몇 점을 감점해야 무작위 선택의 기댓값이 0이 되는지 설명해 주시고, 이 탐구를 통해 평가의 공정성에 대해 무엇을 배웠으며 교사가 되어 평가를 설계할 때 어떻게 적용하겠는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 수리적 원리: 정답 시 +1점일 때(정답 확률 1/5, 오답 확률 4/5), E(X) = 1*(1/5) - k*(4/5) = 0 이므로 오답 시 정답 배점의 1/4(0.25점)을 감점해야 기댓값이 0이 됨\n2) 평가의 공정성과 적용: 운이나 찍기가 아닌 실제 역량을 측정하는 타당도의 중요성을 배웠으며, 초등 교실에서는 감점으로 두려움을 주기보다 서술형·수행평가 등 사고 과정을 살피는 평가로 진정한 공정성을 구현하겠음."
+            },
+            {
+                id: 12,
+                category: "교과 세특",
+                question: "영어Ⅱ에서 놀이를 '교육적 엔진'으로 규정하는 글을 썼는데, 그 주장을 어떤 연구나 이론으로 뒷받침했는지, 그리고 늘봄학교 확대로 학교가 돌봄까지 맡게 된 지금 지원자가 말한 교육적 놀이와 돌봄 시간의 놀이는 어떻게 같고 다르다고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 뒷받침 이론(피아제, 비고츠키의 놀이 발달 이론 및 정의적 여과기 가설 등)\n2) 교육적 놀이와 돌봄 놀이의 공통점과 차이점: 아이의 자발성과 즐거움, 사회성 발달을 돕는 점은 같으나, 수업 중 교육적 놀이는 명확한 성취기준과 학습 목표가 내재된 구조화된 활동인 반면 늘봄 돌봄 시간의 놀이는 정서적 이완과 휴식에 더 초점을 두어야 함."
+            },
+            {
+                id: 13,
+                category: "교과 세특",
+                question: "세계지리 시간에 질랜디아가 대륙으로 분류되는 근거를 탐구하며 지리 개념도 새로운 근거에 따라 달라질 수 있음을 이해했다고 했는데, 그 분류 근거를 간단히 설명해 주시고, 생성형 AI가 그럴듯한 정보를 쏟아내는 지금 그 배움을 초등학생의 정보 판단 교육에 어떻게 적용할 수 있을지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 질랜디아 대륙 분류 근거(주변 해저 지각보다 높은 고도, 화강암 등 대륙 지각의 암석 구성 등 지질학적 증거)\n2) 초등 정보 판단 교육 적용: 지식은 절대 불변이 아니라 타당한 근거에 의해 성립됨을 가르치고, 생성형 AI의 답변도 무조건 믿지 않고 출처와 근거를 교차 확인하며 질문하는 비판적 리터러시 교육으로 연결."
+            },
+            {
+                id: 14,
+                category: "교과 세특",
+                question: "사회·문화 탐구에서 관심이 학습 부진이라는 현상에서 학생을 어떻게 이해하고 도울지로 옮겨갔다고 되어 있는데, 그 전환의 계기가 무엇이었는지, 그리고 기초학력 진단이 강화되는 지금 진단 결과가 아이에게 낙인이 되지 않도록 교사가 무엇을 해야 한다고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 관점 전환 계기: 학습 부진이 단순한 개인의 노력 부족이 아니라 가정환경, 정서, 선수학습 결손 등 복합적 요인의 결과임을 확인한 과정\n2) 낙인 방지 방안: 진단 결과를 등수나 분류가 아닌 '맞춤형 처방전'으로 다루고, 별도 분리 시 세심한 배려와 교실 내 협력 학습을 통해 아이의 자존감을 지켜주어야 함."
+            },
+            {
+                id: 15,
+                category: "교과 세특",
+                question: "교육학 모의수업에서 4학년 사회 '우리 지역' 단원을 디지털 영상 지도로 탐구하도록 구성했는데, 실제 수업에서 친구들의 반응은 어땠는지, 그리고 2022 개정 교육과정의 학교자율시간을 활용해 진주나 경남을 소재로 수업을 만든다면 어떻게 설계하겠는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 모의수업 반응: 평면 지도보다 로드뷰·위성 지도로 익숙한 장소를 찾으며 공간 인지와 수업 몰입도가 크게 높아진 반응\n2) 학교자율시간 수업 설계(진주/경남 소재): 진주 남강과 유등축제, 경남의 우주항공이나 습지 등을 소재로 학생들이 디지털 지도로 지역 문제를 탐색하고 해결책을 제안하는 지역 연계 프로젝트 수업 구상."
+            },
+            {
+                id: 16,
+                category: "교과 세특",
+                question: "학령인구 감소에 대응해 폐교를 세대 통합 공간으로 활용하는 방안을 구상했는데, 구상 과정에서 실제 폐교 활용 사례를 조사했는지, 그리고 학생 수가 열 명 남짓한 소규모 학교에 발령받는다면 큰 학교의 교사보다 어떤 역량이 더 필요하다고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 조사한 폐교 활용 사례(지역 문화예술 공간, 노인 복지와 마을 돌봄 결합 시설 등)\n2) 소규모 학교 교사의 핵심 역량: 무학년제 복식학급이나 수준별 개별화 수업을 유연하게 재구성하는 교육과정 설계 역량, 인근 학교와의 공동교육과정 운영 능력, 마을 공동체 및 학부모와 긴밀히 소통하는 협력 역량."
+            },
+            {
+                id: 17,
+                category: "교과 세특",
+                question: "다문화 학생과 교육 정책을 탐구한 뒤 '지원받지 못한 학생에 대한 연구가 부족했다'고 스스로 평가했는데, 그렇게 판단한 이유가 무엇이었는지, 그리고 한국어가 서툰 이주배경 학생이 있는 학급의 담임이 된다면 수업과 학급 운영에서 무엇을 가장 먼저 하겠는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 성찰 이유: 정책 사각지대에 놓인 중도입국 자녀나 학습 도구어(교과 어휘)가 부족해 조용히 소외되는 학생들을 깊이 다루지 못했다는 반성\n2) 담임으로서의 첫 조치: 시각 자료·다국어 번역 도구를 활용한 수업 비계 제공, 또래 짝꿍 멘토링 매칭, 모든 학생이 서로의 문화를 평등하게 존중하는 다문화 감수성 학급 분위기 조성."
+            },
+            {
+                id: 18,
+                category: "교과 세특",
+                question: "『알프스의 소녀 하이디』 속 식생활을 분석해 건강한 식단 교육 방안을 탐구했는데, 동화 속 음식에서 어떤 영양소가 부족하다고 보고 어떻게 보완했는지, 그리고 이런 스토리텔링 방식의 건강교육이 영양 지식을 직접 가르치는 수업보다 어떤 점에서 효과적이라고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 식단 분석 및 보완: 빵, 치즈 위주의 식단에서 부족한 식이섬유와 비타민류를 파악하고 균형 잡힌 식단으로 재구성한 내용\n2) 스토리텔링 건강교육의 효과: 영양소 명칭 암기보다 동화 주인공을 돕는다는 내재적 동기를 유발하여 편식 개선과 식습관을 실생활로 자연스럽게 전이."
+            },
+            {
+                id: 19,
+                category: "교과 세특",
+                question: "1학년 때 교권 침해를 주제로 시를 창작하고 2학년 때 공자와 이황에게 교권 문제를 묻는 가상 인터뷰를 썼는데, 두 활동에서 각각 무엇을 표현하고 어떤 해결 실마리를 찾았는지, 그리고 교권과 학생 인권이 대립하지 않고 함께 지켜지기 위한 조건은 무엇이라고 생각하는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 시 창작(무너진 교실의 아픔 공감)과 공자·이황 가상 인터뷰(상호 공경과 예, 교사의 자기 성찰과 솔선수범에서 찾은 해법)\n2) 교권과 학생 인권의 공존 조건: 두 권리는 제로섬이 아님. 명확한 학급 규칙과 제도적 보호 장치 위에 교육 3주체의 상호 존중과 소통이 뒷받침되어야 함."
+            },
+            {
+                id: 20,
+                category: "교과 세특",
+                question: "인공지능 기초 시간에 수학 복습을 돕는 테스트 챗봇을 설계했다고 되어 있는데, 어떤 방식으로 만들었는지 설명해 주시고, AI 디지털교과서의 지위가 교육자료로 바뀌는 등 교실 속 AI 활용 논란이 이어지는 지금 직접 AI 도구를 만들어 본 사람으로서 초등 교실에서 교사가 반드시 지켜야 할 AI 활용 원칙은 무엇이라고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 수학 복습 챗봇 설계 방식(문제 제시-오답 유형별 힌트 제공-단계별 피드백 알고리즘 등)\n2) 초등 교실의 AI 활용 원칙: ① 주객전도 금지(보조적 자료) ② 발달 단계 고려(아날로그 조작 경험 해치지 않기) ③ 데이터 개인정보 보호 및 비판적 검증 지도."
+            },
+            {
+                id: 21,
+                category: "창의적 체험활동",
+                question: "1학년 동아리에서 '디지털 교과서 도입의 교육적 효과'를 탐구하며 학생들의 탐색 능력 저하와 인내심 감소를 우려하고 장단점을 절충해야 한다고 제안했는데, 그 우려를 어떤 근거로 도출했는지, 그리고 이후 AI 디지털교과서의 지위가 교육자료로 바뀌는 과정을 지켜보며 당시 지원자의 판단이 어떻게 달라졌거나 확고해졌는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 우려 도출 근거: 즉각적인 피드백과 시각적 자극 위주의 디지털 환경이 깊이 있는 사고와 인내심을 약화시킬 수 있다는 우려\n2) 교육자료 전환에 대한 입장: 의무 도입보다 교사가 자율적으로 선별 활용하도록 한 변화가 당시 본인의 '균형과 절충' 판단을 더욱 확고히 해주었음."
+            },
+            {
+                id: 22,
+                category: "창의적 체험활동",
+                question: "1학년 진로활동에서 『공교육을 뒤엎자』를 슬로 리딩하며 \"무한 경쟁에서 선택받지 못한 학교는 문을 닫아야 한다\"는 필자의 논리에 반대했는데, 책에서 필자가 그렇게 주장한 근거는 무엇이었고 지원자는 어떤 논리로 반박했는지, 그리고 학생 수 감소로 실제 학교들이 문을 닫고 있는 지금 그 생각에 변함이 없는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 필자의 근거(시장주의 경쟁)와 본인의 반박(공교육은 모든 아동의 기본권이자 전인적 성장 안전망)\n2) 폐교 현실에 대한 입장: 경제적 효율성만 따져서는 안 되며 소규모 학교의 특색을 살려 지역 공동체의 구심점으로 지켜야 한다는 소신 유지."
+            },
+            {
+                id: 23,
+                category: "창의적 체험활동",
+                question: "1학년 때 '교육이 경제에 미치는 영향'을 탐구하며 교육과 경제성장 사이에 정적인 비례 관계가 있다고 주장했는데, 어떤 통계 자료를 비교했는지 설명해 주시고, 그 관계가 상관관계인지 인과관계인지 지금 다시 본다면 어떻게 판단하겠으며, 학생 수가 줄었으니 교육 예산도 줄여야 한다는 주장에는 어떻게 답하겠는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 비교한 통계 자료와 상관관계 vs 인과관계 재판단(질적 수준이 결합된 조건부 인과관계)\n2) 예산 축소론 반박: 학생 수는 줄어도 기초학력, 정서 위기, 늘봄·디지털 등 1인당 맞춤형 질적 투자는 오히려 확대되어야 함."
+            },
+            {
+                id: 24,
+                category: "교과 세특",
+                question: "1학년 국어 시간에 『엔트로피』를 읽고 형광펜 중독처럼 시험을 위한 비효율적 학습이 교육의 엔트로피를 높인다고 분석하며 '생산적인 학습이란 무엇인가'라는 질문을 던졌는데, 그 질문에 지원자가 내린 답은 무엇이었는지, 그리고 AI가 요약과 정리를 대신해 주는 지금 학생에게 생산적인 학습은 어떤 모습이어야 한다고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 생산적 학습의 정의(삶과 연결한 의미 재구성)\n2) AI 시대의 생산적 학습: AI가 요약한 정보에 비판적 질문을 던지고 자신의 경험과 엮어 새로운 해결책을 만드는 주체적 사고 과정."
+            },
+            {
+                id: 25,
+                category: "교과 세특",
+                question: "1학년 학교폭력예방교육 시간에 학생들이 이미 다 아는 교육이라 새로운 시각과 자극이 필요하다고 지적했고, 2학년 독서 시간에는 『군주론』과 『목민심서』를 비교해 처벌 중심 지도와 교화 중심 지도의 한계를 함께 검토했는데, 두 활동을 통해 지원자가 내린 결론은 무엇이며, 학교폭력 조치 사항이 대입에 반영되는 등 처벌이 강화되는 현재 흐름을 어떻게 평가하는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 두 활동의 결론: 명확한 책임과 진정한 관계 회복 중심 공감 교육의 필요성\n2) 처벌 강화 흐름 평가: 경각심 고취 효과가 있으나 초등에서는 낙인보다 초기 갈등 중재와 관계 회복 중심의 교육적 해결이 우선."
+            },
+            {
+                id: 26,
+                category: "창의적 체험활동",
+                question: "1학년 동아리 모의수업에서 '팝콘의 기원과 역사'를 주제로 팝콘이 튀겨지는 과정을 보여주는 장치를 고안했다고 되어 있는데, 그 장치를 실제로 어떻게 만들어 시연했는지, 그리고 그 수업에서 초등학생의 흥미를 끄는 것과 과학 개념을 정확히 전달하는 것 사이에서 무엇을 배웠는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 팝콘 모형 제작 및 시연 방법\n2) 시각적 흥미 유발을 '왜 그럴까?'라는 교사의 구조화된 발문으로 연결해 과학적 개념을 이끌어내는 눈높이 수업의 핵심을 배움."
+            },
+            {
+                id: 27,
+                category: "교과 세특",
+                question: "1학년 통합사회에서 사교육 투자가 합리적 결정인지 탐구하며 사교육이 필수가 되지 않도록 공교육 체계를 개선해야 한다고 강조했는데, 사교육의 효용성이 모든 학생에게 동일하지 않다과 본 근거는 무엇이었는지, 그리고 사교육비 부담이 여전히 큰 현실에서 초등 교사가 교실 안에서 할 수 있는 일은 무엇이라고 생각하는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 사교육 효용성 한계 근거(자기주도성 저하 등)\n2) 교실 안의 대책: 수업 시간 완벽한 개념 이해와 꼼꼼한 피드백, 늘봄·AI 맞춤형 학습 보완, 학부모와의 적극적 소통."
+            },
+            {
+                id: 28,
+                category: "교과 세특",
+                question: "1학년 과학탐구실험에서 『10대를 위한 적정기술 콘서트』를 읽고 급식소 잔반통 문제를 해결하기 위한 페트병 음식물 쓰레기 분리기를 고안해 모형을 시연했는데, 그 장치의 원리와 시연 결과를 설명해 주시고, 이 경험을 초등학교의 메이커 교육이나 생태전환교육에 어떻게 활용할 수 있을지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 페트병 분리기 원리 및 시연 결과\n2) 메이커·생태전환교육 활용: 일상 속 작은 불편함을 발견하고 폐자원을 업사이클링해 해결책을 만드는 실생활 문제해결 프로젝트."
+            },
+            {
+                id: 29,
+                category: "교과 세특",
+                question: "1학년 정보 시간에 '학교에서 예체능 교육과 지식 교육의 조화'를 주제로 포스터를 제작하며 초등교사는 한 사람이 지식 교과와 예체능 교과를 모두 가르치는 경우가 많다는 점에 주목했는데, 그 포스터에서 제시한 해결 방안은 무엇이었는지, 그리고 지원자 스스로는 예체능 교과를 가르칠 준비가 어느 정도 되어 있다고 생각하는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 포스터의 해결 방안(교과 융합 STEAM 수업 활성화)\n2) 본인의 예체능 지도 준비도 및 교대 진학 후 실기 역량 강화 의지."
+            },
+            {
+                id: 30,
+                category: "교과 세특",
+                question: "1학년 영어 시간에 파키스탄 여성 교육 문제를 탐구하고 말랄라 유사프자이의 발언을 담은 포스터를 제작했는데, 포스터에 어떤 메시지를 담았는지 설명해 주시고, 진주교대가 세계시민의 자질 함양을 강조하는 만큼 그 탐구를 초등학생 대상 세계시민교육으로 바꾼다면 시혜적인 시선을 피하면서 어떻게 수업하겠는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 포스터 메시지(교육은 보편적 인권)\n2) 시혜적 시선을 피하는 법: 불쌍한 타자가 아닌 부당함에 맞선 주체적 용기로 조명하고 우리 주변의 편견과 연결."
+            },
+            {
+                id: 31,
+                category: "교과 세특",
+                question: "1학년 한국사 시간에 최초의 초등교사 양성기관인 한성사범학교에 대해 심화 보고서를 작성했는데, 지원자가 꼽은 한성사범학교의 의의는 무엇이었는지, 그리고 130년이 지난 지금 교육대학교가 감당해야 할 시대적 역할은 무엇이라고 생각하는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 한성사범학교의 의의(근대 공교육의 출발점 및 초등교사 전문성 최초 정립)\n2) 오늘날 교대의 역할: 에듀테크와 인간적 돌봄·인성을 겸비한 미래 초등교육 전문가 양성."
+            },
+            {
+                id: 32,
+                category: "창의적 체험활동",
+                question: "2학년 다문화 이해 교육 시간에 다문화 가정의 차별 문제와 미디어를 통한 혐오 인식 확산을 추가로 조사해 편견 완화 교육과 미디어 비판 수용 태도가 필요하다고 제안했는데, 어떤 미디어 사례를 조사했는지, 그리고 아이들이 짧은 영상과 댓글로 편견을 먼저 접하는 지금 초등 교사는 미디어 리터러시 교육을 어떻게 해야 한다고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 조사한 미디어 혐오 사례\n2) 미디어 리터러시 교육: 팩트체크와 타인의 입장을 헤아리는 공감 훈련, 알고리즘 편향 너머의 관점 탐색."
+            },
+            {
+                id: 33,
+                category: "교과 세특",
+                question: "2학년 스마트폰 중독 예방 교육에서 국내외 학교의 스마트폰 규제 사례를 비교했고, 영어 독해와 작문 시간에는 휴대전화 사용을 스스로 제한해 집중력을 높인 경험을 글로 썼는데, 어느 나라 사례가 가장 인상 깊었는지와 지원자의 실제 실천 경험을 말씀해 주시고, 수업 중 스마트기기 사용 제한이 법으로 정해진 지금 외부 규제와 스스로의 조절 중 무엇이 더 교육적이라고 보는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 해외 사례 및 본인의 실천 경험\n2) 외부 규제 vs 자기 조절: 초등학생에게는 안전한 울타리가 되어줄 '외부 규제'가 먼저 필요하며 그 안에서 점진적으로 '자기 조절력'을 기르는 것이 가장 교육적임."
+            },
+            {
+                id: 34,
+                category: "창의적 체험활동",
+                question: "2학년 진로활동에서 『공교육의 위기와 도전』을 읽고 수학 성취도는 높지만 행복도는 낮은 역설을 통계 그래프로 보여주며 핀란드 사례를 대안으로 제시했는데, 그 그래프의 자료 출처와 핵심 수치를 설명해 주시고, 교육 환경과 사회 구조가 다른 한국에 핀란드식 교육을 그대로 적용할 때의 한계는 무엇이라고 생각하는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) PISA 통계 지표 및 한국 교육의 역설\n2) 핀란드 교육 일괄 적용의 한계: 입시 경쟁 구조와 사회적 배경을 고려하지 않은 무시험 도입은 격차를 키울 수 있으므로 한국 실정에 맞는 단계적 과정 중심 평가 필요."
+            },
+            {
+                id: 35,
+                category: "교과 세특",
+                question: "2학년 독서 시간에 『대한민국 미래교육 트렌드』를 읽고 늘봄교실 사례를 통해 교육과 돌봄의 역할을 구분할 필요성을 설명했는데, 지원자가 생각한 두 역할의 차이는 무엇이었는지, 그리고 늘봄학교가 확대되며 학교가 돌봄까지 맡게 된 현실에서 교사의 역할은 어디까지여야 한다고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 교육(성취기준 기반 체계적 성장)과 돌봄(안전한 보호와 휴식)의 차이\n2) 늘봄학교 속 교사의 역할: 행정·보육 실무는 전담 인력이 맡고 교사는 학생의 정서 정보를 유기적으로 공유하며 전인적 성장을 돕는 교육적 구심점 역할."
+            },
+            {
+                id: 36,
+                category: "교과 세특",
+                question: "2학년 수학Ⅰ에서 함수를 '수학 자판기', 기울기를 '계단의 가파름'에 비유해 초등학생 눈높이로 설명하는 방법을 고안했는데, 지금 면접관을 초등학생이라 생각하고 함수를 그 비유로 설명해 보시겠습니까? 그리고 쉬운 비유가 오히려 오개념을 만들 수 있는 위험은 없는지도 함께 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 초등학생 눈높이 함수 자판기 비유 시연\n2) 오개념 위험과 보완: 단순 기계적 변환으로만 오해할 수 있으므로 도입부 흥미 유발 후 정확한 정의와 반례로 정교화 필요."
+            },
+            {
+                id: 37,
+                category: "교과 세특",
+                question: "2학년 한국지리 시간에 주변 초등학교 4곳의 통학 안전도를 직접 평가했다고 되어 있는데, 어떤 평가 지표를 세웠고 현장 답사에서 가장 위험하다고 판단한 요소는 무엇이었는지, 그리고 그 결과를 교사가 된 후 아이들의 안전교육이나 학교 밖 생활지도에 어떻게 활용하겠는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 안전도 평가 지표 및 골목길 불법 주정차 등 위험 요소 파악\n2) 교직 활용: 아이들과 함께 통학로 안전 지도 제작, 지자체 개선 건의 등 실천적 안전교육으로 연결."
+            },
+            {
+                id: 38,
+                category: "교과 세특",
+                question: "2학년 동아시아사에서 일본 역사 교과서 왜곡 문제를 탐구한 뒤 교사가 되면 사실에 기반한 역사를 가르치겠다는 다짐글을 썼는데, 탐구한 구체적인 왜곡 사례를 설명해 주시고, 역사 해석이 사회적 논쟁이 되는 상황에서 초등 교사는 아이들에게 역사를 어떤 태도로 가르쳐야 한다고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 구체적 왜곡 사례(강제동원 축소 등)\n2) 초등 역사 교육의 태도: 편향된 정치적 해석 주입을 피하고 객관적 사료와 사실을 바탕으로 평화와 인권의 가치 아래 스스로 생각하게 안내."
+            },
+            {
+                id: 39,
+                category: "교과 세특",
+                question: "2학년 고전 읽기에서 진로 고민을 해결하기 위해 『교사가 되려 합니다』를 선정해 읽고 표준화 교육을 넘어 학생 개별 특성을 존중해야 한다고 성찰했는데, 책에서 지원자의 진로 고민을 해결해 준 부분은 무엇이었는지, 그리고 한 반에 다양한 학생이 함께 있는 현실에서 개별 맞춤형 교육은 어디까지 가능하다고 생각하는지 말씀해 주시겠습니까?",
+                guide: "[답안 포인트]\n1) 책을 통해 얻은 위로와 교사의 올바른 시선\n2) 다인수 학급 개별화 교육의 현실적 대안: 보편적 학습 설계(UDL)와 AI 보조 학습 도구를 결합하여 교실 안에서도 충분히 구현 가능."
+            },
+            {
+                id: 40,
+                category: "창의적 체험활동",
+                question: "2학년 전교 부회장으로 체육 행사를 운영하며 여러 차례 회의를 주도해 종목 구성과 운영 방안을 조율했다고 되어 있는데, 회의에서 의견이 가장 크게 엇갈렸던 쟁점은 무엇이었고 어떻게 결론을 냈는지, 그리고 그 경험을 바탕으로 초등학교에서 학생자치를 운영할 때 교사는 어디까지 개입하고 어디서부터 학생에게 맡겨야 한다고 생각하는지 말씀해 주십시오.",
+                guide: "[답안 포인트]\n1) 종목 구성 갈등 조율 경험\n2) 교사의 개입과 위임의 경계: 안전·소외 방지 같은 최소한의 원칙은 잡아주되 그 안에서의 규칙 결정과 시행착오는 온전히 아이들에게 위임."
+            }
+        ];
+
+        /* Default Hardcoded Gemini API Key */
+        const DEFAULT_API_KEY = "AQ.Ab8RN6K1O2WMYHzuMXTkda1DTUjmOe1SEIeGlFFI0iE7FS1oaA";
+
+        let questionBank = [];
+
+        // DOM Element References
+        const totalQuestionCountEl = document.getElementById("totalQuestionCount");
+        const sidebarNewQTextEl = document.getElementById("sidebarNewQText");
+        const sidebarAddQBtn = document.getElementById("sidebarAddQBtn");
+        const questionListEl = document.getElementById("questionList");
+        const completedCountEl = document.getElementById("completedCount");
+        const totalQuestionsStaticEl = document.getElementById("totalQuestionsStatic");
+        const progressBarEl = document.getElementById("progressBar");
+        const randomQuestionBtn = document.getElementById("randomQuestionBtn");
+
+        const currentCategoryBadgeEl = document.getElementById("currentCategoryBadge");
+        const completedBadgeEl = document.getElementById("completedBadge");
+        const currentQuestionNumEl = document.getElementById("currentQuestionNum");
+        const currentQuestionTextEl = document.getElementById("currentQuestionText");
+        const toggleAnswerGuideBtn = document.getElementById("toggleAnswerGuideBtn");
+        const guideChevronEl = document.getElementById("guideChevron");
+        const answerGuideContentEl = document.getElementById("answerGuideContent");
+        const currentGuideTextEl = document.getElementById("currentGuideText");
+        const prevQuestionBtn = document.getElementById("prevQuestionBtn");
+        const nextQuestionBtn = document.getElementById("nextQuestionBtn");
+
+        // Step Tabs
+        const stepTab1 = document.getElementById("stepTab1");
+        const stepTab2 = document.getElementById("stepTab2");
+        const stepTab3 = document.getElementById("stepTab3");
+        const stepTab4 = document.getElementById("stepTab4");
+        const resetSessionBtn = document.getElementById("resetSessionBtn");
+
+        const recordingBoxTitle = document.getElementById("recordingBoxTitle");
+        const recordingTimerEl = document.getElementById("recordingTimer");
+        const recordingStatusTextEl = document.getElementById("recordingStatusText");
+        const waveContainer = document.getElementById("waveContainer");
+        const recordBtn = document.getElementById("recordBtn");
+        const recordIcon = document.getElementById("recordIcon");
+        const playAudioBtn = document.getElementById("playAudioBtn");
+        const playIcon = document.getElementById("playIcon");
+        const resetAudioBtn = document.getElementById("resetAudioBtn");
+        const audioPlayback = document.getElementById("audioPlayback");
+        const transcriptArea = document.getElementById("transcriptArea");
+        const sttConvertBtn = document.getElementById("sttConvertBtn");
+        const analyzeBtn = document.getElementById("analyzeBtn");
+        const analyzeBtnText = document.getElementById("analyzeBtnText");
+
+        // Feedback Section DOM
+        const feedbackSection = document.getElementById("feedbackSection");
+        const feedbackReportTitle = document.getElementById("feedbackReportTitle");
+        const feedbackDateEl = document.getElementById("feedbackDate");
+        const fbTab1Btn = document.getElementById("fbTab1Btn");
+        const fbTab2Btn = document.getElementById("fbTab2Btn");
+        const fbTab3Btn = document.getElementById("fbTab3Btn");
+        const fbTab4Btn = document.getElementById("fbTab4Btn");
+
+        const fbContextQTitleEl = document.getElementById("fbContextQTitle");
+        const fbContextQTextEl = document.getElementById("fbContextQText");
+        const fbContextATextEl = document.getElementById("fbContextAText");
+
+        const scoreIntentLabelEl = document.getElementById("scoreIntentLabel");
+        const scoreLogicLabelEl = document.getElementById("scoreLogicLabel");
+        const scoreIntentEl = document.getElementById("scoreIntent");
+        const scoreLogicEl = document.getElementById("scoreLogic");
+        const feedbackStrengthsEl = document.getElementById("feedbackStrengths");
+        const feedbackImprovementsEl = document.getElementById("feedbackImprovements");
+        const feedbackModelAnswerEl = document.getElementById("feedbackModelAnswer");
+        const fbNextFollowupCard = document.getElementById("fbNextFollowupCard");
+        const fbNextFollowupText = document.getElementById("fbNextFollowupText");
+
+        const loadingOverlay = document.getElementById("loadingOverlay");
+
+        // Question Management Modal DOM
+        const manageQuestionsModalBtn = document.getElementById("manageQuestionsModalBtn");
+        const questionManageModal = document.getElementById("questionManageModal");
+        const closeQuestionManageBtn = document.getElementById("closeQuestionManageBtn");
+        const newQTextInput = document.getElementById("newQText");
+        const newQGuideInput = document.getElementById("newQGuide");
+        const addNewQuestionBtn = document.getElementById("addNewQuestionBtn");
+        const resetQuestionsBtn = document.getElementById("resetQuestionsBtn");
+        const manageQuestionListContainer = document.getElementById("manageQuestionListContainer");
+
+        // Other Modals DOM
+        const openApiKeyBtn = document.getElementById("openApiKeyBtn");
+        const apiKeyModal = document.getElementById("apiKeyModal");
+        const closeApiKeyBtn = document.getElementById("closeApiKeyBtn");
+        const apiKeyInput = document.getElementById("apiKeyInput");
+        const saveApiKeyBtn = document.getElementById("saveApiKeyBtn");
+
+        const historyModalBtn = document.getElementById("historyModalBtn");
+        const historyModal = document.getElementById("historyModal");
+        const closeHistoryBtn = document.getElementById("closeHistoryBtn");
+        const historyListContainer = document.getElementById("historyListContainer");
+
+        const toastNotification = document.getElementById("toastNotification");
+        const toastMessage = document.getElementById("toastMessage");
+
+        // Application State
+        let currentQuestionIndex = 0;
+        let userApiKey = localStorage.getItem("gemini_api_key") || DEFAULT_API_KEY;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let audioBlob = null;
+        let isRecording = false;
+        let timerInterval = null;
+        let waveInterval = null;
+        let secondsElapsed = 0;
+        let lastRecordedSeconds = 0;
+        let practiceHistory = [];
+        let recognition = null;
+        let accumulatedTranscript = '';
+
+        let currentStep = 1;
+        let sessionAnswers = { step1: '', step2: '', step3: '' };
+        let sessionQuestions = { step1: '', step2: '', step3: '' };
+        let sessionEvaluations = { step1: null, step2: null, step3: null, step4: null };
+        let activeFeedbackTab = 1;
+
+        function getCleanMimeType(blob) {
+            if (!blob || !blob.type) return 'audio/webm';
+            const rawType = blob.type.split(';')[0].trim().toLowerCase();
+            if (rawType.includes('mp4')) return 'audio/mp4';
+            if (rawType.includes('aac')) return 'audio/aac';
+            if (rawType.includes('ogg')) return 'audio/ogg';
+            if (rawType.includes('wav')) return 'audio/wav';
+            if (rawType.includes('m4a')) return 'audio/m4a';
+            return 'audio/webm';
+        }
+
+        function formatTime(sec) {
+            if (!sec || sec <= 0) return "00:00";
+            const mins = Math.floor(sec / 60).toString().padStart(2, '0');
+            const secs = (sec % 60).toString().padStart(2, '0');
+            return `${mins}:${secs}`;
+        }
+
+        function formatTimeKorean(sec) {
+            if (!sec || sec <= 0) return "0초";
+            const mins = Math.floor(sec / 60);
+            const secs = sec % 60;
+            if (mins > 0 && secs > 0) return `${mins}분 ${secs}초`;
+            if (mins > 0) return `${mins}분`;
+            return `${secs}초`;
+        }
+
+        function showToast(msg) {
+            toastMessage.textContent = msg;
+            toastNotification.classList.remove("translate-y-20", "opacity-0");
+            setTimeout(() => {
+                toastNotification.classList.add("translate-y-20", "opacity-0");
+            }, 3000);
+        }
+
+        function initApp() {
+            if (!userApiKey || userApiKey.trim() === "") {
+                userApiKey = DEFAULT_API_KEY;
+                localStorage.setItem("gemini_api_key", DEFAULT_API_KEY);
+            }
+
+            const savedQuestions = localStorage.getItem("gemini_custom_questions_v5");
+            if (savedQuestions) {
+                try {
+                    questionBank = JSON.parse(savedQuestions);
+                    if (!Array.isArray(questionBank) || questionBank.length === 0) {
+                        questionBank = [...DEFAULT_QUESTION_BANK];
+                    }
+                } catch(e) {
+                    questionBank = [...DEFAULT_QUESTION_BANK];
+                }
+            } else {
+                questionBank = [...DEFAULT_QUESTION_BANK];
+            }
+
+            const savedHistory = localStorage.getItem("gemini_interview_history_v5");
+            if (savedHistory) {
+                try { practiceHistory = JSON.parse(savedHistory); } catch(e) { practiceHistory = []; }
+            }
+
+            apiKeyInput.value = userApiKey;
+            
+            updateProgress();
+            renderQuestionList();
+            selectQuestion(0);
+
+            prevQuestionBtn.addEventListener("click", () => {
+                if (currentQuestionIndex > 0) selectQuestion(currentQuestionIndex - 1);
+            });
+            nextQuestionBtn.addEventListener("click", () => {
+                if (currentQuestionIndex < questionBank.length - 1) selectQuestion(currentQuestionIndex + 1);
+            });
+            randomQuestionBtn.addEventListener("click", () => {
+                const randIndex = Math.floor(Math.random() * questionBank.length);
+                selectQuestion(randIndex);
+            });
+
+            // Sidebar Quick Add Question (No category select)
+            sidebarAddQBtn.addEventListener("click", () => {
+                const qText = sidebarNewQText.value.trim();
+                if (!qText) {
+                    showToast("추가할 면접 질문 내용을 입력해주세요.");
+                    return;
+                }
+                const newQ = {
+                    id: Date.now(),
+                    category: "사용자 추가",
+                    question: qText,
+                    guide: "질문의 핵심 요구사항을 빠짐없이 파악하고, 자신의 경험과 교직관을 연결하여 논리적으로 답변하세요."
+                };
+                questionBank.push(newQ);
+                saveQuestionBank();
+                sidebarNewQText.value = "";
+                showToast(`Q${questionBank.length} 새 질문이 추가되었습니다!`);
+                renderQuestionList();
+                selectQuestion(questionBank.length - 1);
+            });
+
+            toggleAnswerGuideBtn.addEventListener("click", () => {
+                answerGuideContentEl.classList.toggle("hidden");
+                guideChevronEl.classList.toggle("rotate-180");
+            });
+
+            openApiKeyBtn.addEventListener("click", () => apiKeyModal.classList.remove("hidden"));
+            closeApiKeyBtn.addEventListener("click", () => apiKeyModal.classList.add("hidden"));
+            saveApiKeyBtn.addEventListener("click", () => {
+                const val = apiKeyInput.value.trim();
+                userApiKey = val || DEFAULT_API_KEY;
+                localStorage.setItem("gemini_api_key", userApiKey);
+                apiKeyModal.classList.add("hidden");
+                showToast("API 키가 저장되었습니다.");
+            });
+
+            historyModalBtn.addEventListener("click", () => {
+                renderHistoryList();
+                historyModal.classList.remove("hidden");
+            });
+            closeHistoryBtn.addEventListener("click", () => historyModal.classList.add("hidden"));
+
+            fbTab1Btn.addEventListener("click", () => renderFeedbackSection(1));
+            fbTab2Btn.addEventListener("click", () => renderFeedbackSection(2));
+            fbTab3Btn.addEventListener("click", () => renderFeedbackSection(3));
+            fbTab4Btn.addEventListener("click", () => renderFeedbackSection(4));
+
+            manageQuestionsModalBtn.addEventListener("click", () => {
+                renderManageQuestionList();
+                questionManageModal.classList.remove("hidden");
+            });
+            closeQuestionManageBtn.addEventListener("click", () => questionManageModal.classList.add("hidden"));
+
+            addNewQuestionBtn.addEventListener("click", () => {
+                const qText = newQTextInput.value.trim();
+                const qGuide = newQGuideInput.value.trim() || "질문의 핵심 요구에 명확하고 논리적으로 답변하세요.";
+
+                if (!qText) {
+                    showToast("질문 내용을 입력해주세요.");
+                    return;
+                }
+
+                const newQ = {
+                    id: Date.now(),
+                    category: "사용자 추가",
+                    question: qText,
+                    guide: qGuide
+                };
+
+                questionBank.push(newQ);
+                saveQuestionBank();
+                newQTextInput.value = "";
+                newQGuideInput.value = "";
+                showToast("새 면접 질문이 추가되었습니다.");
+                renderManageQuestionList();
+                renderQuestionList();
+                selectQuestion(questionBank.length - 1);
+            });
+
+            resetQuestionsBtn.addEventListener("click", () => {
+                if (confirm("모든 질문을 기본 40문항으로 초기화하시겠습니까?")) {
+                    questionBank = [...DEFAULT_QUESTION_BANK];
+                    saveQuestionBank();
+                    showToast("질문 목록이 기본값으로 초기화되었습니다.");
+                    renderManageQuestionList();
+                    renderQuestionList();
+                    selectQuestion(0);
+                }
+            });
+
+            resetSessionBtn.addEventListener("click", () => {
+                resetSessionState();
+                showToast("1단계 본질문부터 다시 시작합니다.");
+            });
+        }
+
+        function saveQuestionBank() {
+            localStorage.setItem("gemini_custom_questions_v5", JSON.stringify(questionBank));
+            totalQuestionCountEl.textContent = questionBank.length;
+            totalQuestionsStaticEl.textContent = questionBank.length;
+        }
+
+        function renderManageQuestionList() {
+            manageQuestionListContainer.innerHTML = "";
+            if (questionBank.length === 0) {
+                manageQuestionListContainer.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">등록된 질문이 없습니다.</p>';
+                return;
+            }
+
+            questionBank.forEach((q, index) => {
+                const card = document.createElement("div");
+                card.className = "bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs flex justify-between items-start gap-3";
+                card.innerHTML = `
+                    <div class="flex-1 space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-cute-700">Q${index + 1}</span>
+                            <span class="px-2 py-0.5 rounded-full bg-cute-100 text-cute-800 font-bold text-[10px]">${q.category}</span>
+                        </div>
+                        <div class="font-medium text-slate-800 leading-snug">${q.question}</div>
+                    </div>
+                    <button class="delete-q-btn text-red-400 hover:text-red-600 p-1 rounded-md transition-colors" data-id="${q.id}" title="질문 삭제">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                manageQuestionListContainer.appendChild(card);
+            });
+
+            manageQuestionListContainer.querySelectorAll(".delete-q-btn").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    const qId = Number(e.currentTarget.getAttribute("data-id"));
+                    deleteQuestion(qId);
+                });
+            });
+        }
+
+        function deleteQuestion(id) {
+            if (questionBank.length <= 1) {
+                showToast("최소 1개의 질문은 유지되어야 합니다.");
+                return;
+            }
+            questionBank = questionBank.filter(q => q.id !== id);
+            saveQuestionBank();
+            showToast("질문이 삭제되었습니다.");
+            renderManageQuestionList();
+            renderQuestionList();
+            if (currentQuestionIndex >= questionBank.length) {
+                selectQuestion(questionBank.length - 1);
+            } else {
+                selectQuestion(currentQuestionIndex);
+            }
+        }
+
+        function setupSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            try {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = "ko-KR";
+
+                recognition.onresult = (event) => {
+                    let sessionText = '';
+                    for (let i = 0; i < event.results.length; i++) {
+                        sessionText += event.results[i][0].transcript;
+                    }
+                    const fullText = (accumulatedTranscript + ' ' + sessionText).trim();
+                    transcriptArea.value = fullText;
+                };
+
+                recognition.onend = () => {
+                    accumulatedTranscript = transcriptArea.value ? transcriptArea.value.trim() : '';
+                    if (isRecording && recognition) {
+                        try { recognition.start(); } catch(e) {}
+                    }
+                };
+            } catch(e) {}
+        }
+
+        function setupAudioPlaybackEvents() {
+            playAudioBtn.addEventListener("click", () => {
+                if (!audioPlayback.src) return;
+                if (audioPlayback.paused) {
+                    audioPlayback.play().catch(e => console.warn(e));
+                    playIcon.className = "fa-solid fa-pause";
+                } else {
+                    audioPlayback.pause();
+                    playIcon.className = "fa-solid fa-play";
+                }
+            });
+
+            audioPlayback.addEventListener("ended", () => {
+                playIcon.className = "fa-solid fa-play";
+            });
+
+            resetAudioBtn.addEventListener("click", () => {
+                if (isRecording) stopRecording();
+                audioBlob = null;
+                audioPlayback.src = "";
+                transcriptArea.value = "";
+                accumulatedTranscript = "";
+                playAudioBtn.disabled = true;
+                resetAudioBtn.disabled = true;
+                resetTimer();
+                recordingStatusTextEl.textContent = "마이크 버튼을 눌러 답변을 시작하세요. (최대 2분)";
+                showToast("녹음 데이터 및 답변이 초기화되었습니다.");
+            });
+        }
+
+        function getSupportedMimeType() {
+            const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/aac', 'audio/ogg'];
+            for (let t of types) {
+                if (MediaRecorder.isTypeSupported(t)) return t;
+            }
+            return '';
+        }
+
+        function startTimer() {
+            secondsElapsed = 0;
+            recordingTimerEl.textContent = `00:00 / 02:00`;
+            recordingTimerEl.classList.remove("text-red-400");
+
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                recordingTimerEl.textContent = `${formatTime(secondsElapsed)} / 02:00`;
+                if (secondsElapsed >= 110) recordingTimerEl.classList.add("text-red-400");
+                if (secondsElapsed >= 120) {
+                    stopRecording();
+                    showToast("최대 녹음 시간(2분)에 도달하여 자동 종료되었습니다.");
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function resetTimer() {
+            stopTimer();
+            secondsElapsed = 0;
+            recordingTimerEl.textContent = `00:00 / 02:00`;
+            recordingTimerEl.classList.remove("text-red-400");
+        }
+
+        function animateWavebars(active) {
+            const bars = waveContainer.querySelectorAll('.wave-bar');
+            if (active) {
+                waveInterval = setInterval(() => {
+                    bars.forEach(bar => {
+                        const randomHeight = Math.floor(Math.random() * 36) + 8;
+                        bar.style.height = `${randomHeight}px`;
+                    });
+                }, 150);
+            } else {
+                if (waveInterval) clearInterval(waveInterval);
+                bars.forEach((bar, idx) => {
+                    bar.style.height = `${(idx % 3 + 2) * 4}px`;
+                });
+            }
+        }
+
+        recordBtn.addEventListener("click", () => {
+            if (!isRecording) {
+                accumulatedTranscript = transcriptArea.value ? transcriptArea.value.trim() : '';
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+                const mimeType = getSupportedMimeType();
+                const options = mimeType ? { mimeType } : {};
+
+                mediaRecorder = new MediaRecorder(stream, options);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    if (audioChunks.length === 0) return;
+                    const blobType = mediaRecorder.mimeType || 'audio/webm';
+                    audioBlob = new Blob(audioChunks, { type: blobType });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayback.src = audioUrl;
+                    audioPlayback.load();
+                    playAudioBtn.disabled = false;
+                    resetAudioBtn.disabled = false;
+                };
+
+                mediaRecorder.start(200);
+                if (recognition) {
+                    try { recognition.start(); } catch(e) {}
+                }
+
+                isRecording = true;
+                recordBtn.classList.add("pulse-recording", "bg-cute-700");
+                recordIcon.className = "fa-solid fa-square";
+                recordingStatusTextEl.textContent = "답변 녹음 진행 중... (종료하려면 버튼을 누르세요)";
+
+                startTimer();
+                animateWavebars(true);
+            } catch (err) {
+                showToast("마이크 접근 실패: 권한을 허용해 주세요.");
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                if (mediaRecorder.stream) {
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                }
+            }
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
+
+            isRecording = false;
+            lastRecordedSeconds = secondsElapsed;
+            recordBtn.classList.remove("pulse-recording", "bg-cute-700");
+            recordIcon.className = "fa-solid fa-microphone";
+            recordingStatusTextEl.textContent = `녹음 완료 (${formatTimeKorean(lastRecordedSeconds)})! 답변 수정 및 평가 받기를 누르세요.`;
+
+            stopTimer();
+            animateWavebars(false);
+        }
+
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result;
+                    if (typeof result === 'string' && result.includes(',')) {
+                        resolve(result.split(',')[1]);
+                    } else {
+                        reject(new Error("Base64 변환 실패"));
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        sttConvertBtn.addEventListener("click", async () => {
+            if (!audioBlob) {
+                showToast("변환할 녹음 음성이 없습니다. 먼저 답변을 녹음해 주세요.");
+                return;
+            }
+
+            const lTitle = document.getElementById("loadingTitle");
+            const lSub = document.getElementById("loadingSubtitle");
+            if (lTitle) lTitle.textContent = "제미나이 AI가 음성을 텍스트로 변환 중입니다...";
+            if (lSub) lSub.textContent = "오디오 데이터를 정밀 청취하여 한국어 문장으로 받아쓰기를 수행합니다.";
+            loadingOverlay.classList.remove("hidden");
+
+            try {
+                const base64Audio = await blobToBase64(audioBlob);
+                const cleanMime = getCleanMimeType(audioBlob);
+                const promptText = "이 한국어 음성 오디오를 정밀하게 들은 후, 오직 음성에서 말한 내용 그대로의 받아쓰기(transcription) 텍스트만 출력하세요. 다른 해설이나 인사말은 절대로 넣지 마세요.";
+
+                const apiKeyToUse = userApiKey || DEFAULT_API_KEY;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKeyToUse}`;
+
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { inlineData: { mimeType: cleanMime, data: base64Audio } },
+                            { text: promptText }
+                        ]
+                    }]
+                };
+
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                const transcribedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (transcribedText) {
+                    transcriptArea.value = transcribedText.trim();
+                    showToast("음성이 텍스트로 성공적으로 변환되었습니다!");
+                } else {
+                    throw new Error("STT 결과가 비어있습니다.");
+                }
+            } catch (err) {
+                showToast("음성 변환 중 오류가 발생했습니다. 다시 시도해 주세요.");
+            } finally {
+                loadingOverlay.classList.add("hidden");
+            }
+        });
+
+        analyzeBtn.addEventListener("click", async () => {
+            let answerText = transcriptArea.value.trim();
+            if (!answerText && !audioBlob) {
+                showToast("녹음하거나 텍스트 상자에 답변을 입력해 주세요.");
+                return;
+            }
+
+            const lTitle = document.getElementById("loadingTitle");
+            const lSub = document.getElementById("loadingSubtitle");
+
+            if (currentStep === 1) {
+                if (lTitle) lTitle.textContent = "1단계 본질문 답변 평가 및 1차 꼬리질문 생성 중...";
+                if (lSub) lSub.textContent = "질문의 핵심 요구사항에 맞게 답변했는지 엄격히 채점합니다.";
+            } else if (currentStep === 2) {
+                if (lTitle) lTitle.textContent = "2단계 1차 꼬리질문 평가 및 2차 꼬리질문 생성 중...";
+                if (lSub) lSub.textContent = "1차 답변의 허점이나 구체성을 파악하여 2차 꼬리질문을 구성합니다.";
+            } else if (currentStep === 3) {
+                if (lTitle) lTitle.textContent = "3단계 2차 꼬리질문 평가 분석 중...";
+                if (lSub) lSub.textContent = "마지막 답변의 논리성과 교직관을 심사합니다.";
+            } else {
+                if (lTitle) lTitle.textContent = "3단계 전체 종합 평가 리포트 생성 중...";
+                if (lSub) lSub.textContent = "본질문부터 꼬리질문까지의 일관성과 완성도를 총체적 심사합니다.";
+            }
+
+            loadingOverlay.classList.remove("hidden");
+            feedbackSection.classList.add("hidden");
+
+            const currentQ = questionBank[currentQuestionIndex];
+            const strictRuleText = `
+[엄격하고 객관적인 심사 지침 - 필수 준수]
+1. 질문의 배경 서두 맥락은 단지 질문의 도입부일 뿐이다. 배경 세부 내용을 답변에서 일일이 다루지 않았다고 해서 절대로 감점하거나 누락으로 지적하지 마라!
+2. 오직 질문의 맨 마지막 핵심 문장에서 직접적으로 물어본 항목에 대해 빠짐없이 모두 답했는지(질문 요구사항 완결성)만을 검증하라!
+3. 질문에서 물어본 핵심 요소를 하나라도 빠뜨리고 답했거나 관념적으로 얼버무렸다면 객관적으로 감점하라.
+4. 모범 답안("modelAnswer") 생성 규칙:
+   - 고등학교 3학년 입시생이 면접관 앞에서 실제로 말하는 정중하고 당찬 구어체 어조로 작성하라.
+   - 문장 어미는 반드시 "~라고 생각합니다.", "~한 경험이 있습니다.", "~고 봅니다." 와 같은 구어체 어투를 써라.
+`;
+
+            let systemPrompt = "";
+            let userQuery = "";
+
+            if (currentStep === 1) {
+                systemPrompt = `너는 교대 면접의 엄격하고 객관적인 평가 교수이다.
+${strictRuleText}
+질문 및 답변을 심사하고, 추가적으로 답변의 부족한 점이나 더 파고들 만한 [1차 꼬리질문(nextFollowupQuestion)]을 1개 작성하라.
+[JSON 출력 형식]
+{
+  "transcription": "학생이 말한 답변 받아쓰기",
+  "scoreIntent": 숫자(0~100 사이 핵심질문 요구사항 충족도),
+  "scoreLogic": 숫자(0~100 사이 교직 적성 및 논리성),
+  "strengths": "답변에서 잘한 점과 돋보이는 소신 (2~3줄)",
+  "improvements": "질문 핵심요소 누락 여부 및 논리적 보완점 (2~3줄)",
+  "modelAnswer": "고3 학생 구어체 모범 답안 예시",
+  "nextFollowupQuestion": "학생 답변을 바탕으로 교직관이나 실행방안을 더 깊이 묻는 1차 꼬리질문"
+}`;
+                userQuery = `[본질문]
+카테고리: ${currentQ.category}
+질문: ${currentQ.question}
+[출제의도 가이드]: ${currentQ.guide}
+[학생 1단계 답변]: "${answerText}"
+위 규정에 따라 객관적으로 평가하고 JSON으로 반환하세요.`;
+
+            } else if (currentStep === 2) {
+                systemPrompt = `너는 교대 면접의 엄격한 심사 교수이다.
+${strictRuleText}
+1단계 질문과 답변, 그리고 현재 1차 꼬리질문에 대한 학생의 답변을 바탕으로 평가하고, 마지막 [2차 심층 꼬리질문(nextFollowupQuestion)]을 1개 작성하라.
+[JSON 출력 형식]
+{
+  "transcription": "학생 1차 꼬리질문 답변 받아쓰기",
+  "scoreIntent": 숫자(0~100 질문 완결성 점수),
+  "scoreLogic": 숫자(0~100 논리성 점수),
+  "strengths": "1차 꼬리질문 답변 우수한 점",
+  "improvements": "1차 꼬리질문 답변 보완점",
+  "modelAnswer": "고3 학생 구어체 모범 답안 예시",
+  "nextFollowupQuestion": "학생 답변의 구체적 사례나 갈등 상황 대처법을 묻는 2차 심층 꼬리질문"
+}`;
+                userQuery = `[본질문]: ${sessionQuestions.step1}
+[1단계 답변]: ${sessionAnswers.step1}
+[1차 꼬리질문]: ${sessionQuestions.step2}
+[학생 2단계 답변]: "${answerText}"
+평가 결과 및 2차 꼬리질문을 JSON으로 작성하세요.`;
+
+            } else if (currentStep === 3) {
+                systemPrompt = `너는 교대 면접 심사 교수이다.
+${strictRuleText}
+2차 꼬리질문에 대한 학생의 답변을 평가하라. (nextFollowupQuestion은 빈 문자열 ""로 지정)
+[JSON 출력 형식]
+{
+  "transcription": "학생 2차 꼬리질문 답변 받아쓰기",
+  "scoreIntent": 숫자(0~100),
+  "scoreLogic": 숫자(0~100),
+  "strengths": "2차 꼬리질문 답변 우수한 점",
+  "improvements": "2차 꼬리질문 답변 보완점",
+  "modelAnswer": "고3 학생 구어체 모범 답안 예시",
+  "nextFollowupQuestion": ""
+}`;
+                userQuery = `[2차 꼬리질문]: ${sessionQuestions.step3}
+[학생 3단계 답변]: "${answerText}"
+평가 결과를 JSON으로 작성하세요.`;
+
+            } else if (currentStep === 4) {
+                systemPrompt = `너는 교대 면접 총괄 수석 심사위원이다.
+본질문, 1차 꼬리질문, 2차 꼬리질문까지 총 3번의 질의응답 전체를 총체적으로 종합 평가하라.
+[JSON 출력 형식]
+{
+  "scoreIntent": 숫자(0~100 총체적 질문이해도),
+  "scoreLogic": 숫자(0~100 총체적 논리 및 교직인성),
+  "strengths": "3번의 질의응답 전반에서 유기적으로 연결된 우수한 점 (3~4줄)",
+  "improvements": "3개 답변 전반에서 지적된 태도/논리적 허점 (3~4줄)",
+  "modelAnswer": "본질문부터 꼬리질문까지 완벽히 연결되는 고3 학생 구어체 종합 마스터 답안 세트"
+}`;
+                userQuery = `[본질문]: ${sessionQuestions.step1}
+[답변 1]: ${sessionAnswers.step1}
+[1차 꼬리질문]: ${sessionQuestions.step2}
+[답변 2]: ${sessionAnswers.step2}
+[2차 꼬리질문]: ${sessionQuestions.step3}
+[답변 3]: ${sessionAnswers.step3}
+위 3개 질의응답 전체를 총체적으로 종합 평가하여 JSON으로 반환하세요.`;
+            }
+
+            const parts = [];
+            if (audioBlob) {
+                try {
+                    const base64Audio = await blobToBase64(audioBlob);
+                    const cleanMime = getCleanMimeType(audioBlob);
+                    parts.push({ inlineData: { mimeType: cleanMime, data: base64Audio } });
+                } catch(e) {}
+            }
+            parts.push({ text: userQuery });
+
+            const apiKeyToUse = userApiKey || DEFAULT_API_KEY;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKeyToUse}`;
+
+            const payload = {
+                contents: [{ parts: parts }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { responseMimeType: "application/json" }
+            };
+
+            try {
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (jsonText) {
+                    const result = JSON.parse(jsonText);
+                    if (result.transcription) {
+                        transcriptArea.value = result.transcription;
+                        answerText = result.transcription;
+                    }
+                    handleStepResult(result, currentQ, answerText);
+                } else {
+                    throw new Error("Gemini API 응답 오류");
+                }
+            } catch (err) {
+                showToast("Gemini AI 평가 중 오류가 발생했습니다. 다시 시도해주세요.");
+            } finally {
+                loadingOverlay.classList.add("hidden");
+            }
+        });
+
+        function handleStepResult(result, questionObj, userText) {
+            if (currentStep === 1) {
+                sessionAnswers.step1 = userText;
+                sessionQuestions.step1 = questionObj.question;
+                sessionEvaluations.step1 = result;
+                saveSessionToHistory();
+                renderFeedbackSection(1);
+
+                if (result.nextFollowupQuestion) {
+                    sessionQuestions.step2 = result.nextFollowupQuestion;
+                    currentStep = 2;
+                    updateStepTabsUI();
+                    showToast("1차 꼬리질문이 생성되었습니다!");
+                    prepareStepUI(`1차 꼬리질문`, result.nextFollowupQuestion, `2단계 1차 꼬리질문 답변 녹음하기`, `2단계 평가 및 2차 꼬리질문 받기`);
+                }
+            } else if (currentStep === 2) {
+                sessionAnswers.step2 = userText;
+                sessionEvaluations.step2 = result;
+                saveSessionToHistory();
+                renderFeedbackSection(2);
+
+                if (result.nextFollowupQuestion) {
+                    sessionQuestions.step3 = result.nextFollowupQuestion;
+                    currentStep = 3;
+                    updateStepTabsUI();
+                    showToast("2차 꼬리질문이 생성되었습니다!");
+                    prepareStepUI(`2차 꼬리질문`, result.nextFollowupQuestion, `3단계 2차 꼬리질문 답변 녹음하기`, `3단계 평가 및 종합 리포트 요청하기`);
+                }
+            } else if (currentStep === 3) {
+                sessionAnswers.step3 = userText;
+                sessionEvaluations.step3 = result;
+                saveSessionToHistory();
+                renderFeedbackSection(3);
+
+                currentStep = 4;
+                updateStepTabsUI();
+                analyzeBtnText.textContent = "🏆 3단계 전체 종합 평가 리포트 생성하기";
+                showToast("모든 꼬리질문 답변 완료! [종합 평가 리포트 생성] 버튼을 누르세요.");
+            } else if (currentStep === 4) {
+                sessionEvaluations.step4 = result;
+                saveSessionToHistory();
+                renderFeedbackSection(4);
+                showToast("3단계 전체 종합 평가 리포트 생성이 완료되었습니다!");
+            }
+        }
+
+        function prepareStepUI(badgeText, questionText, boxTitle, btnText) {
+            currentCategoryBadgeEl.textContent = badgeText;
+            currentQuestionTextEl.textContent = questionText;
+            recordingBoxTitle.textContent = boxTitle;
+            analyzeBtnText.textContent = btnText;
+
+            if (isRecording) stopRecording();
+            audioBlob = null;
+            audioPlayback.src = "";
+            transcriptArea.value = "";
+            accumulatedTranscript = "";
+            playAudioBtn.disabled = true;
+            resetAudioBtn.disabled = true;
+            resetTimer();
+            recordingStatusTextEl.textContent = "마이크 버튼을 눌러 답변을 시작하세요. (최대 2분)";
+        }
+
+        function updateStepTabsUI() {
+            stepTab1.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all " + (currentStep === 1 ? "bg-cute-600 text-white shadow-xs" : "bg-cute-50 text-slate-400 border border-cute-100");
+            stepTab2.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all " + (currentStep === 2 ? "bg-cute-600 text-white shadow-xs" : "bg-cute-50 text-slate-400 border border-cute-100");
+            stepTab3.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all " + (currentStep === 3 ? "bg-cute-600 text-white shadow-xs" : "bg-cute-50 text-slate-400 border border-cute-100");
+            stepTab4.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all " + (currentStep === 4 ? "bg-cute-600 text-white shadow-xs" : "bg-cute-50 text-slate-400 border border-cute-100");
+        }
+
+        function resetSessionState() {
+            currentStep = 1;
+            sessionAnswers = { step1: '', step2: '', step3: '' };
+            sessionQuestions = { step1: '', step2: '', step3: '' };
+            sessionEvaluations = { step1: null, step2: null, step3: null, step4: null };
+
+            updateStepTabsUI();
+            const q = questionBank[currentQuestionIndex];
+            if (q) {
+                prepareStepUI(q.category, q.question, `1단계 본질문 답변 녹음하기`, `1단계 답변 평가 및 1차 꼬리질문 받기`);
+            }
+            feedbackSection.classList.add("hidden");
+        }
+
+        async function fetchWithRetry(url, options, retries = 2, backoff = 1000) {
+            try {
+                const res = await fetch(url, options);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res;
+            } catch (err) {
+                if (retries > 0) {
+                    await new Promise(r => setTimeout(r, backoff));
+                    return fetchWithRetry(url, options, retries - 1, backoff * 2);
+                }
+                throw err;
+            }
+        }
+
+        function renderFeedbackSection(targetTab) {
+            if (!sessionEvaluations[`step${targetTab}`]) return;
+
+            activeFeedbackTab = targetTab;
+            const evalData = sessionEvaluations[`step${targetTab}`];
+
+            fbTab1Btn.className = getFbTabBtnClass(1, targetTab);
+            fbTab2Btn.className = getFbTabBtnClass(2, targetTab);
+            fbTab3Btn.className = getFbTabBtnClass(3, targetTab);
+            fbTab4Btn.className = getFbTabBtnClass(4, targetTab);
+
+            fbTab1Btn.disabled = !sessionEvaluations.step1;
+            fbTab2Btn.disabled = !sessionEvaluations.step2;
+            fbTab3Btn.disabled = !sessionEvaluations.step3;
+            fbTab4Btn.disabled = !sessionEvaluations.step4;
+
+            let qTitle = "";
+            let qText = "";
+            let aText = "";
+
+            if (targetTab === 1) {
+                qTitle = "[1단계 본질문]";
+                qText = sessionQuestions.step1 || questionBank[currentQuestionIndex].question;
+                aText = sessionAnswers.step1 || "(답변 기록 없음)";
+            } else if (targetTab === 2) {
+                qTitle = "[2단계 1차 꼬리질문]";
+                qText = sessionQuestions.step2 || "(1차 꼬리질문)";
+                aText = sessionAnswers.step2 || "(답변 기록 없음)";
+            } else if (targetTab === 3) {
+                qTitle = "[3단계 2차 꼬리질문]";
+                qText = sessionQuestions.step3 || "(2차 꼬리질문)";
+                aText = sessionAnswers.step3 || "(답변 기록 없음)";
+            } else if (targetTab === 4) {
+                qTitle = "[4단계 종합 리포트]";
+                qText = "본질문 + 1차 꼬리질문 + 2차 꼬리질문 전체";
+                aText = `1단계 답변: ${sessionAnswers.step1 || '-'}\n2단계 답변: ${sessionAnswers.step2 || '-'}\n3단계 답변: ${sessionAnswers.step3 || '-'}`;
+            }
+
+            fbContextQTitleEl.textContent = qTitle;
+            fbContextQTextEl.textContent = qText;
+            fbContextATextEl.textContent = aText;
+
+            const intentScore = (evalData.scoreIntent !== undefined && evalData.scoreIntent !== null) ? Number(evalData.scoreIntent) : 80;
+            const logicScore = (evalData.scoreLogic !== undefined && evalData.scoreLogic !== null) ? Number(evalData.scoreLogic) : 80;
+
+            scoreIntentEl.textContent = intentScore;
+            scoreLogicEl.textContent = logicScore;
+
+            feedbackStrengthsEl.textContent = evalData.strengths || "";
+            feedbackImprovementsEl.textContent = evalData.improvements || "";
+            feedbackModelAnswerEl.textContent = evalData.modelAnswer || "";
+
+            if ((targetTab === 1 || targetTab === 2) && evalData.nextFollowupQuestion) {
+                fbNextFollowupCard.classList.remove("hidden");
+                fbNextFollowupText.textContent = evalData.nextFollowupQuestion;
+            } else {
+                fbNextFollowupCard.classList.add("hidden");
+            }
+
+            const now = new Date();
+            feedbackDateEl.textContent = `${now.getFullYear()}.${(now.getMonth()+1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')} 심사 결과`;
+            feedbackSection.classList.remove("hidden");
+        }
+
+        function getFbTabBtnClass(tabNum, activeTab) {
+            const hasData = !!sessionEvaluations[`step${tabNum}`];
+            if (tabNum === activeTab) {
+                return "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-cute-600 text-white shadow-xs cursor-pointer";
+            } else if (hasData) {
+                return "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-white text-slate-700 hover:bg-cute-100 cursor-pointer shadow-2xs border border-cute-200";
+            } else {
+                return "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-cute-50 text-slate-400 opacity-50 cursor-not-allowed";
+            }
+        }
+
+        function saveSessionToHistory() {
+            const q = questionBank[currentQuestionIndex];
+            if (!q) return;
+
+            const existingIdx = practiceHistory.findIndex(h => h.questionId === q.id);
+            const item = {
+                id: existingIdx >= 0 ? practiceHistory[existingIdx].id : Date.now(),
+                questionId: q.id,
+                questionText: q.question,
+                category: q.category,
+                date: new Date().toLocaleDateString('ko-KR'),
+                currentStep: currentStep,
+                sessionQuestions: { ...sessionQuestions },
+                sessionAnswers: { ...sessionAnswers },
+                sessionEvaluations: { ...sessionEvaluations },
+                durationSeconds: lastRecordedSeconds
+            };
+
+            if (existingIdx >= 0) {
+                practiceHistory[existingIdx] = item;
+            } else {
+                practiceHistory.unshift(item);
+            }
+
+            localStorage.setItem("gemini_interview_history_v5", JSON.stringify(practiceHistory));
+            updateProgress();
+            renderQuestionList();
+        }
+
+        function renderHistoryList() {
+            historyListContainer.innerHTML = "";
+            if (practiceHistory.length === 0) {
+                historyListContainer.innerHTML = '<p class="text-xs text-slate-400 text-center py-8">아직 연습 기록이 없습니다.</p>';
+                return;
+            }
+
+            practiceHistory.forEach((item) => {
+                const card = document.createElement("div");
+                card.className = "bg-slate-50 border border-cute-100 hover:border-cute-300 rounded-2xl p-4 space-y-2 text-xs cursor-pointer transition-all";
+                
+                const stepCount = item.sessionEvaluations?.step4 ? "4단계 종합 완료" :
+                                  item.sessionEvaluations?.step3 ? "3단계 2차 꼬리질문 완료" :
+                                  item.sessionEvaluations?.step2 ? "2단계 1차 꼬리질문 완료" : "1단계 본질문 완료";
+
+                const latestEval = item.sessionEvaluations?.step4 || item.sessionEvaluations?.step3 || item.sessionEvaluations?.step2 || item.sessionEvaluations?.step1;
+                const intentVal = (latestEval && latestEval.scoreIntent !== undefined) ? latestEval.scoreIntent : 80;
+                const logicVal = (latestEval && latestEval.scoreLogic !== undefined) ? latestEval.scoreLogic : 80;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center text-slate-500">
+                        <span class="font-bold text-cute-700">${stepCount}</span>
+                        <span>${item.date}</span>
+                    </div>
+                    <div class="font-semibold text-slate-800">${item.questionText}</div>
+                    <div class="bg-white p-2.5 rounded-xl border border-cute-100 text-slate-600 italic">
+                        "1단계 답변: ${item.sessionAnswers?.step1 ? (item.sessionAnswers.step1.length > 60 ? item.sessionAnswers.step1.substring(0, 60) + '...' : item.sessionAnswers.step1) : '기록 없음'}"
+                    </div>
+                    <div class="flex justify-between items-center pt-1 text-[11px]">
+                        <div class="flex space-x-3">
+                            <span class="text-cute-700 font-bold">완결성: ${intentVal}점</span>
+                            <span class="text-purple-700 font-bold">논리성: ${logicVal}점</span>
+                        </div>
+                        <span class="text-cute-600 font-bold flex items-center gap-1">
+                            클릭하여 피드백 보기 <i class="fa-solid fa-arrow-right"></i>
+                        </span>
+                    </div>
+                `;
+
+                card.addEventListener("click", () => {
+                    const qIdx = questionBank.findIndex(q => q.id === item.questionId);
+                    if (qIdx >= 0) {
+                        selectQuestion(qIdx);
+                        historyModal.classList.add("hidden");
+                    }
+                });
+                historyListContainer.appendChild(card);
+            });
+        }
+
+        function updateProgress() {
+            const completedCount = practiceHistory.length;
+            completedCountEl.textContent = completedCount;
+            const percentage = Math.round((completedCount / questionBank.length) * 100);
+            progressBarEl.style.width = `${percentage}%`;
+        }
+
+        function renderQuestionList() {
+            questionListEl.innerHTML = "";
+
+            questionBank.forEach((q, idx) => {
+                const historyItem = practiceHistory.find(h => h.questionId === q.id);
+                const isCompleted = !!historyItem;
+
+                const itemBtn = document.createElement("button");
+                const isActive = idx === currentQuestionIndex;
+
+                let btnClass = "w-full text-left p-3.5 rounded-2xl border text-xs transition-all flex flex-col space-y-1.5 ";
+                if (isActive) {
+                    btnClass += "border-cute-500 bg-cute-50 shadow-xs ring-1 ring-cute-400 ";
+                } else if (isCompleted) {
+                    btnClass += "border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100/60 ";
+                } else {
+                    btnClass += "border-cute-100 bg-white hover:bg-cute-50/50 ";
+                }
+
+                itemBtn.className = btnClass;
+                const badgeHtml = isCompleted
+                    ? `<span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fa-solid fa-check text-emerald-600"></i> 완료</span>`
+                    : `<span class="text-[10px] bg-cute-100 text-cute-700 font-bold px-2 py-0.5 rounded-full">미완료</span>`;
+
+                itemBtn.innerHTML = `
+                    <div class="flex items-center justify-between w-full">
+                        <span class="font-bold text-cute-800">Q${idx + 1} [${q.category}]</span>
+                        ${badgeHtml}
+                    </div>
+                    <div class="text-slate-800 font-medium line-clamp-2 leading-relaxed">
+                        ${q.question}
+                    </div>
+                `;
+
+                itemBtn.addEventListener("click", () => selectQuestion(idx));
+                questionListEl.appendChild(itemBtn);
+            });
+        }
+
+        function selectQuestion(index) {
+            if (index < 0 || index >= questionBank.length) return;
+            currentQuestionIndex = index;
+
+            const q = questionBank[currentQuestionIndex];
+            currentCategoryBadgeEl.textContent = q.category;
+            currentQuestionNumEl.textContent = `Q${(currentQuestionIndex + 1).toString().padStart(2, '0')} / ${questionBank.length}`;
+            currentQuestionTextEl.textContent = q.question;
+            currentGuideTextEl.textContent = q.guide;
+
+            answerGuideContentEl.classList.add("hidden");
+            guideChevronEl.classList.remove("rotate-180");
+
+            const historyItem = practiceHistory.find(h => h.questionId === q.id);
+
+            if (historyItem && historyItem.sessionEvaluations) {
+                currentStep = historyItem.currentStep || 1;
+                sessionQuestions = { ...historyItem.sessionQuestions };
+                sessionAnswers = { ...historyItem.sessionAnswers };
+                sessionEvaluations = { ...historyItem.sessionEvaluations };
+
+                updateStepTabsUI();
+
+                if (currentStep === 2 && sessionQuestions.step2) {
+                    prepareStepUI(`1차 꼬리질문`, sessionQuestions.step2, `2단계 1차 꼬리질문 답변 녹음하기`, `2단계 평가 및 2차 꼬리질문 받기`);
+                } else if (currentStep === 3 && sessionQuestions.step3) {
+                    prepareStepUI(`2차 꼬리질문`, sessionQuestions.step3, `3단계 2차 꼬리질문 답변 녹음하기`, `3단계 평가 및 종합 리포트 요청하기`);
+                } else if (currentStep === 4) {
+                    prepareStepUI(q.category, q.question, `3단계 연습 완료`, `🏆 3단계 전체 종합 평가 리포트 다시 생성하기`);
+                } else {
+                    prepareStepUI(q.category, q.question, `1단계 본질문 답변 녹음하기`, `1단계 답변 평가 및 1차 꼬리질문 받기`);
+                }
+
+                const latestTab = sessionEvaluations.step4 ? 4 :
+                                  sessionEvaluations.step3 ? 3 :
+                                  sessionEvaluations.step2 ? 2 : 1;
+
+                renderFeedbackSection(latestTab);
+
+                completedBadgeEl.innerHTML = `
+                    <span class="px-2.5 py-1 text-xs font-bold rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i> 연습 완료 (피드백 저장됨)
+                    </span>
+                `;
+            } else {
+                completedBadgeEl.innerHTML = "";
+                resetSessionState();
+            }
+
+            renderQuestionList();
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            initApp();
+            setupSpeechRecognition();
+            setupAudioPlaybackEvents();
+        });
+    </script>
+</body>
+</html>
